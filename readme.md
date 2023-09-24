@@ -1,3 +1,9 @@
+\[Project Name\], a music game on curve screen
+====
+
+This is a course project of Human Computer Interaction.
+The aim is to design an app for the curve screen in the school.
+
 How to start developing
 ----
 
@@ -14,3 +20,15 @@ After installing `pnpm`, use `pnpm i` under this project.
 
 Finally, you could launch it by `npm run dev`,
 this will allow you to check how your page looks like when you are developing.
+
+After that, please create a `.gitignore` file in the root of the project.
+The file should contain these:
+
+```
+.gitignore
+
+node_modules/
+.next/
+```
+
+To avoid the conflict of `.gitignore`, it is suggested for you to create your own.
