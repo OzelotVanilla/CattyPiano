@@ -4,6 +4,12 @@
 {
     width: 100%;
     height: 100%;
+}
+
+#HomePage_Main
+{
+    width: 100%;
+    height: 100%;
     margin-bottom: 10dvh;
     display: flex;
     flex-direction: column;
@@ -22,4 +28,15 @@
     {
         margin-bottom: 15dvh;
     }
+}
+
+#HomePage_HoverButtons
+{
+    position: fixed;
+    top: 0px;
+    width: calc(100% - 4dvh);
+    padding: 2dvh;
+
+    display: flex;
+    flex-direction: row-reverse;
 }

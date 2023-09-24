@@ -3,5 +3,9 @@
         "game_title": "曲面屏上的音乐游戏 —— [项目名]",
         "play_button_text": "进入游戏",
         "help_button_text": "操作教学"
+    },
+    "lang": {
+        "en": "English (英语)",
+        "zh": "中文"
     }
 }

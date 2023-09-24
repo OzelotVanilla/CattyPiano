@@ -1,6 +1,7 @@
 import { useRouter } from "next/router"
 import en_text from "./en.json"
 import zh_text from "./zh.json"
+import getNextConfig from "next/config"
 
 export function useI18N()
 {
@@ -16,3 +17,7 @@ export function useI18N()
 
     return ({ locale, text })
 }
+
+const runtime_config: { locales: string[] } = getNextConfig().publicRuntimeConfig
+
+export const possible_locales = runtime_config.locales
