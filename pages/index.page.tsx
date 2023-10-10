@@ -24,8 +24,12 @@ export default function IndexPage()
         <div id="HomePage_Main">
             <Title className="Title" level={1}>{text.index.game_title}</Title>
             <Space className="PlayAndHelpButtons" size={50}>
-                <Button type="primary" size="large">{text.index.play_button_text}</Button>
-                <Button size="large">{text.index.help_button_text}</Button>
+                <Link href="/piano/"><Button type="primary" size="large">
+                    {text.index.play_button_text}
+                </Button></Link>
+                <Link href="/how_to_play"><Button size="large">
+                    {text.index.help_button_text}
+                </Button></Link>
             </Space>
         </div>
         <div id="HomePage_HoverButtons">
