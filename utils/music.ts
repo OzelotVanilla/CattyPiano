@@ -1,3 +1,5 @@
+import { midi_note_to_name } from "./constant_store"
+
 export const keys = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] as const
 export type PossibleKey = typeof keys[number]
 
@@ -11,10 +13,11 @@ export function convertNoteNumToKeyName(midi_note_num: number)
     if (!Number.isInteger(midi_note_num)) { throw TypeError(`Note number ${midi_note_num} is not an integer!`) }
     if (midi_note_num < 21 || midi_note_num > 108) { throw RangeError(`Note number ${midi_note_num} out of range.`) }
 
-    const octave = Math.floor(midi_note_num / 12) - 1
-    const offset = midi_note_num % 12
+    // const octave = Math.floor(midi_note_num / 12) - 1
+    // const offset = midi_note_num % 12
 
-    return `${keys[offset]}${octave}`
+    // return `${keys[offset]}${octave}`
+    return midi_note_to_name[midi_note_num]!
 }
 
 export function convertKeyNameToNoteNum(key_name: string)

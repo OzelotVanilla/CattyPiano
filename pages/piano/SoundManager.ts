@@ -1,5 +1,6 @@
 "use client"
 
+import { midi_note_to_name } from "@/utils/constant_store";
 import { isClientEnvironment } from "@/utils/env";
 import { convertNoteNumToKeyName } from "@/utils/music";
 import { Sampler } from "tone"
@@ -25,7 +26,7 @@ export class SoundManager
                 new Sampler({
                     urls: Object.fromEntries(new Map(
                         [...new Array(81)] // From `C1` to `G7` (this sample only has this range)
-                            .map((_, index) => convertNoteNumToKeyName(index + 24))
+                            .map((_, index) => midi_note_to_name[index + 24]!)
                             .map(s => [s, `${s.replace("#", "s")}.mp3`])
                     )),
                     baseUrl: "/instrument_sample/piano/",

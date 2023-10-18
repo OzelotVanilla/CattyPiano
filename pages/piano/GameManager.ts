@@ -1,5 +1,5 @@
 import { SoundManager } from "./SoundManager";
-import { default_piano_keyboard_layout } from "./constant_store";
+import { default_piano_keyboard_layout } from "@/utils/constant_store";
 
 export enum PianoMode
 {
@@ -31,6 +31,7 @@ export class GameManager
         switch (this.piano_mode)
         {
             case PianoMode.trival: // Do not need to check whether correct
+
                 return this.triggerAttack(keyboard_layout[key] ?? "")
             case PianoMode.in_game:
         }
