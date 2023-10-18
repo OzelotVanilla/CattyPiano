@@ -1,6 +1,11 @@
 export const keys = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] as const
 export type PossibleKey = typeof keys[number]
 
+export function isValidMidiNoteNum(midi_note_num: number)
+{
+    return Number.isInteger(midi_note_num) && midi_note_num >= 21 && midi_note_num <= 108
+}
+
 export function convertNoteNumToKeyName(midi_note_num: number)
 {
     if (!Number.isInteger(midi_note_num)) { throw TypeError(`Note number ${midi_note_num} is not an integer!`) }

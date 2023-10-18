@@ -3,6 +3,7 @@
 import { isClientEnvironment } from "@/utils/env";
 import { convertNoteNumToKeyName } from "@/utils/music";
 import { Sampler } from "tone"
+import { Time } from "tone/build/esm/core/type/Units";
 
 export const global_audio_channel_count = 6
 
@@ -10,13 +11,12 @@ export type AvailableInstrument = "piano"
 
 type Param_playNote = {
     instrument?: AvailableInstrument
-    duration?: number
+    duration?: Time
 }
 
 export class SoundManager
 {
-
-    private static tonejs_instruments: Map<AvailableInstrument, Sampler | null> = new Map();
+    private static tonejs_instruments: Map<AvailableInstrument, Sampler> = new Map();
 
     static {
         if (isClientEnvironment())
