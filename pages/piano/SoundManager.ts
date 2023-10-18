@@ -83,6 +83,11 @@ export class SoundManager
         this.tonejs_instruments.get(instrument)?.triggerRelease(this.convertInputNotesToKeyNames(note))
     }
 
+    public static releaseAllNote(instrument: AvailableInstrument = "piano")
+    {
+        this.tonejs_instruments.get(instrument)?.releaseAll()
+    }
+
     public static getPiano()
     {
         return this.tonejs_instruments.get("piano")

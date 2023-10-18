@@ -36,14 +36,14 @@ export class GameManager
         }
     }
 
-    public static getKeyUp(event: KeyboardEvent)
+    public static getKeyUp(event: KeyboardEvent, all_key_released: boolean = false)
     {
         const keyboard_layout = this.getKeyMapping()!
         const key = event.key
         switch (this.piano_mode)
         {
             case PianoMode.trival:
-                return this.triggerRelease(keyboard_layout[key] ?? "")
+                return this.triggerRelease(keyboard_layout[key] ?? "", all_key_released)
             case PianoMode.in_game:
         }
     }
@@ -53,16 +53,18 @@ export class GameManager
     {
         console.log(`triggerAttack "${note}"`)
         if (note.trim().length == 0) { return this; }
-        // SoundManager.startNote(note)
-        SoundManager.playNote(note, { duration: "4n" })
+        SoundManager.startNote(note)
+        return this;
     }
 
     /** For a normal piano to release a pressed key. */
-    private static triggerRelease(note: string)
+    private static triggerRelease(note: string, all_key_released: boolean = false)
     {
         console.log(`triggerRelease "${note}"`)
         if (note.trim().length == 0) { return this; }
-        // SoundManager.releaseNote(note)
+        SoundManager.releaseNote(note)
+        if (all_key_released) { SoundManager.releaseAllNote() }
+        return this;
     }
 
     /** For in game note that only requires a tap. */

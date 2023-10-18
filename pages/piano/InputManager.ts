@@ -30,7 +30,7 @@ export class InputManager
         if (event.repeat || (!this.key_currently_pressed.has(event_key))) { return } // Ignore repeating result
         this.deleteKeyBeingPressed(event_key)
 
-        GameManager.getKeyUp(event)
+        GameManager.getKeyUp(event, /* all_key_released: */ this.key_currently_pressed.size == 0)
         // console.log(`get key up event:`, event)
     }
 
