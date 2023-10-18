@@ -28,7 +28,8 @@ export class SoundManager
                             .map((_, index) => convertNoteNumToKeyName(index + 24))
                             .map(s => [s, `${s.replace("#", "s")}.mp3`])
                     )),
-                    baseUrl: "/instrument_sample/piano/"
+                    baseUrl: "/instrument_sample/piano/",
+                    release: 1
                 }).toDestination()
             )
         }
