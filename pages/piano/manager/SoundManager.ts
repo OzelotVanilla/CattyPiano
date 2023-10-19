@@ -3,7 +3,8 @@
 import { midi_note_to_name } from "@/utils/constant_store";
 import { isClientEnvironment } from "@/utils/env";
 import { convertNoteNumToKeyName } from "@/utils/music";
-import { Sampler } from "tone"
+import { Sampler, Player } from "tone"
+import { getTransport as getToneTransport } from "tone";
 import { Time } from "tone/build/esm/core/type/Units";
 
 export const global_audio_channel_count = 6
@@ -18,6 +19,8 @@ type Param_playNote = {
 export class SoundManager
 {
     private static tonejs_instruments: Map<AvailableInstrument, Sampler> = new Map();
+
+    private static bgm_player = new Player().sync().toDestination()
 
     static {
         if (isClientEnvironment())
@@ -92,6 +95,27 @@ export class SoundManager
     public static getPiano()
     {
         return this.tonejs_instruments.get("piano")
+    }
+
+    public static getBgmPlayerTime()
+    {
+        return this.bgm_player.immediate()
+    }
+
+    public static loadBgm(url: string)
+    {
+        return this.bgm_player.load(url)
+    }
+
+    public static startBgm()
+    {
+        getToneTransport().start()
+        return this.bgm_player.start()
+    }
+
+    public static pauseBgm()
+    {
+        return this.bgm_player.stop()
     }
 
     public static convertInputNotesToKeyNames(value: string | number | string[] | number[]): string[]

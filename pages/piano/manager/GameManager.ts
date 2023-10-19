@@ -12,6 +12,10 @@ export enum PianoMode
     in_game = "in_game"
 }
 
+type PlayingNoteInfo = {
+    triggered_at: number
+}
+
 export class GameManager
 {
     public static piano_mode: PianoMode = PianoMode.trival;
@@ -19,6 +23,10 @@ export class GameManager
     private static keymapping_setting: Map<PianoMode, Record<string, string>> = new Map([
         [PianoMode.trival, default_piano_keyboard_layout]
     ])
+
+    private static note_playing: Map<string, PlayingNoteInfo> = new Map()
+
+    public static get game_time() { return SoundManager.getBgmPlayerTime() }
 
     /**
      * Check the key being pressed,
