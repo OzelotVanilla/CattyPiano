@@ -20,7 +20,7 @@ export class SoundManager
 {
     private static tonejs_instruments: Map<AvailableInstrument, Sampler> = new Map();
 
-    private static bgm_player = new Player().sync().toDestination()
+    private static bgm_player: Player;
 
     static {
         if (isClientEnvironment())
@@ -36,6 +36,7 @@ export class SoundManager
                     release: 1
                 }).toDestination()
             )
+            this.bgm_player = new Player().sync().toDestination()
         }
     }
 

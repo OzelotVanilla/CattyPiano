@@ -86,8 +86,16 @@ export class GameManager
     private static triggerGameNoteHoldFinish() { }
 
     /** Get the mapping of key */
-    public static getKeyMapping()
+    public static getKeyMapping(order: "key_to_note" | "note_to_key" = "key_to_note")
     {
-        return this.keymapping_setting.get(this.piano_mode)
+        const mapping = this.keymapping_setting.get(this.piano_mode)
+        if (mapping == undefined) { return {} }
+
+        if (order == "key_to_note") { return mapping }
+        else if (order == "note_to_key")
+        {
+            return Object.fromEntries(Object.entries(mapping).map(([k, v]) => [v, k]))
+        }
+        else { throw TypeError(`Unknown param order ("${order}") for GameManager.getKeyMapping.`) }
     }
 }

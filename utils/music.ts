@@ -40,3 +40,8 @@ export function convertKeyNameToNoteNum(key_name: string)
 
     return result
 }
+
+export function isSharpKey(midi_note_num: number)
+{
+    return midi_note_to_name[midi_note_num]?.includes("#")
+}
