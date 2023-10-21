@@ -210,6 +210,55 @@ export class GraphicManager
             param.mode == "keypress"
                 ? this.key_being_pressed.add(param.key_num)
                 : this.key_being_pressed.delete(param.key_num)
+
+            const [white_key_position, black_key_position] =
+                [this.keyboard_config.white_key_position, this.keyboard_config.black_key_position]
+
+            const [key_to_draw, key_is_sharp] = [param.key_num, isSharpKey(param.key_num)]
+            const key_position = (key_is_sharp ? black_key_position : white_key_position).indexOf(key_to_draw)
+            const key_affected = key_is_sharp
+                ? white_key_position.slice(key_position - 1, key_position + 1) // affect another two white keys
+                : black_key_position.slice(key_position, key_position + 2)     // affect another two black keys
+
+            // First draw key.
+            draw.textAlign = "center"
+            draw.font = `40px "Consolas", serif`
+            if (key_is_sharp) // Draw black key will affect no keys
+            {
+                drawBlackKey({
+                    index: key_position,
+                    label: mapping_from_note_name[midi_note_to_name[key_to_draw]!],
+                    is_pressed: param.mode == "keypress"
+                })
+            }
+            else // There is two black key being affected by redraw white key
+            {
+                drawWhiteKey({
+                    index: key_position,
+                    label: mapping_from_note_name[midi_note_to_name[key_to_draw]!],
+                    is_pressed: param.mode == "keypress"
+                })
+
+                // Affected left key (if exists)
+                if (isSharpKey(key_to_draw - 1) && key_to_draw - 1 > this.keyboard_config.start_num)
+                {
+                    drawBlackKey({
+                        index: key_position,
+                        label: mapping_from_note_name[midi_note_to_name[key_to_draw - 1]!],
+                        is_pressed: this.key_being_pressed.has(key_to_draw - 1)
+                    })
+                }
+
+                // Affected right key (if exists)
+                if (isSharpKey(key_to_draw + 1) && key_to_draw + 1 < this.keyboard_config.end_num)
+                {
+                    drawBlackKey({
+                        index: key_position + 1,
+                        label: mapping_from_note_name[midi_note_to_name[key_to_draw + 1]!],
+                        is_pressed: this.key_being_pressed.has(key_to_draw + 1)
+                    })
+                }
+            }
         }
         else
         {
