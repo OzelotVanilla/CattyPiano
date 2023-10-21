@@ -39,6 +39,7 @@ export class GameManager
         switch (this.piano_mode)
         {
             case PianoMode.trival: // Do not need to check whether correct
+                if (keyboard_layout[key] == undefined) { return }
 
                 return this.triggerAttack(keyboard_layout[key] ?? "")
             case PianoMode.in_game:
@@ -52,6 +53,7 @@ export class GameManager
         switch (this.piano_mode)
         {
             case PianoMode.trival:
+                if (keyboard_layout[key] == undefined) { return }
                 return this.triggerRelease(keyboard_layout[key] ?? "", all_key_released)
             case PianoMode.in_game:
         }
