@@ -33,3 +33,7 @@ export const midi_note_to_name = [
     "C7", "C#7", "D7", "D#7", "E7", "F7", "F#7", "G7", "G#7", "A7", "A#7", "B7",
     "C8"
 ] as const
+
+type GetReadonlyArrayInnerType<ReadonlyArray extends readonly any[]> = ReadonlyArray[number];
+
+export type PossibleNoteName = GetReadonlyArrayInnerType<typeof midi_note_to_name>;

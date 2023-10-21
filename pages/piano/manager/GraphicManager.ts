@@ -14,7 +14,9 @@ export class GraphicManager
     private static keyboard_config = {
         start_num: 57, end_num: 74,
         white_key_position: [] as number[], black_key_position: [] as number[],
-        piano_keyboard_height_ratio: 0.28
+        piano_keyboard_height_ratio: 0.28,
+        white_key_release_bg: "#ffffff", white_key_pressed_bg: "#cccccc", white_key_label_colour: "#000000",
+        black_key_release_bg: "#000000", black_key_pressed_bg: "#777777", black_key_label_colour: "#ffffff",
     }
 
     static {
@@ -68,6 +70,63 @@ export class GraphicManager
         const draw = this.canvas_for_piano_keyboard.getContext("2d")!
         // const draw = this.game_canvas.getContext("2d")! // debug purpose
 
+        const mapping_from_note_name = GameManager.getKeyMapping("note_to_key")
+
+        const [width, height] = [this.canvas_for_piano_keyboard.width, this.canvas_for_piano_keyboard.height]
+        const [white_key_width, white_key_height] =
+            [width / this.keyboard_config.white_key_position.length, height]
+        const [black_key_half_width, black_key_height] =
+            [(13.7 / 23.5) * white_key_width / 2, 0.6 * white_key_height]
+
+        type drawKey_Param = { index: number, label: string, is_pressed?: boolean }
+
+        function drawWhiteKey({ index, label, is_pressed = false }: drawKey_Param)
+        {
+            // Keyboard itself.
+            draw.fillStyle = is_pressed
+                ? GraphicManager.keyboard_config.white_key_pressed_bg
+                : GraphicManager.keyboard_config.white_key_release_bg
+            draw.fillRect(
+                index * white_key_width, 0,
+                white_key_width, white_key_height
+            )
+            draw.strokeRect(
+                index * white_key_width, 0,
+                white_key_width, white_key_height
+            )
+
+            // Label.
+            if (label.length == 0) { return }
+            draw.fillStyle = GraphicManager.keyboard_config.white_key_label_colour
+            draw.fillText(
+                label,
+                (index + 0.5) * white_key_width, white_key_height - 50,
+                white_key_width // max width
+            )
+        }
+
+        function drawBlackKey({ index, label, is_pressed = false }: drawKey_Param)
+        {
+            const key_center_position = index * white_key_width
+            // Draw left-half and right-half.
+            draw.fillStyle = is_pressed
+                ? GraphicManager.keyboard_config.black_key_pressed_bg
+                : GraphicManager.keyboard_config.black_key_release_bg
+            draw.fillRect(
+                key_center_position - black_key_half_width, 0,
+                black_key_half_width * 2, black_key_height
+            )
+
+            // Label.
+            if (label.length == 0) { return }
+            draw.fillStyle = GraphicManager.keyboard_config.black_key_label_colour
+            draw.fillText(
+                label,
+                key_center_position, black_key_height - 50,
+                black_key_half_width * 2 // max width
+            )
+        }
+
         if (param.mode == "layout" || param.mode == "redraw")
         {
             const start_num = param.mode == "layout" ? param.start_num : this.keyboard_config.start_num
@@ -80,7 +139,6 @@ export class GraphicManager
                 isSharpKey(start_num) ? start_num - 1 : start_num,
                 isSharpKey(end_num) ? end_num + 1 : end_num
             ]
-            const [width, height] = [this.canvas_for_piano_keyboard.width, this.canvas_for_piano_keyboard.height]
             // draw.fillStyle = "#decafe" // Debug purpose, to detect the size of piano.
             draw.fillStyle = "#ffffff"
             draw.clearRect(0, 0, width, height) // Clear the screen
@@ -117,12 +175,9 @@ export class GraphicManager
             }
 
             // Then use the array to draw the piano
-            const [white_key_width, white_key_height] =
-                [width / this.keyboard_config.white_key_position.length, height]
             const [white_key_position, black_key_position] =
                 [this.keyboard_config.white_key_position, this.keyboard_config.black_key_position]
-            console.log("white_key_position:\n", white_key_position)
-            const mapping_from_note_name = GameManager.getKeyMapping("note_to_key")
+            // console.log("white_key_position:\n", white_key_position)
             // console.log("mapping_from_note_name:\n", mapping_from_note_name)
 
             // First, draw the white keys.
@@ -132,43 +187,22 @@ export class GraphicManager
             // console.log(`width: ${white_key_width}, height: ${height}`)
             for (let white_key_index = 0; white_key_index < white_key_position.length; white_key_index++)
             {
-                // Keyboard itself.
-                draw.fillStyle = "#ffffff"
-                draw.strokeRect(
-                    white_key_index * white_key_width, 0,
-                    white_key_width, white_key_height
-                )
-
-                // Label.
-                draw.fillStyle = "#000000"
-                draw.fillText(
-                    mapping_from_note_name[midi_note_to_name[white_key_position[white_key_index]]!],
-                    (white_key_index + 0.5) * white_key_width, white_key_height - 50,
-                    white_key_width // max width
-                )
+                drawWhiteKey({
+                    index: white_key_index,
+                    label: mapping_from_note_name[midi_note_to_name[white_key_position[white_key_index]]!]
+                })
             }
 
             // Then, draw the black key.
-            const [black_key_half_width, black_key_height] = [(13.7 / 23.5) * white_key_width / 2, 0.6 * white_key_height]
             for (let black_key_index = 0; black_key_index < black_key_position.length; black_key_index++)
             {
                 const note_num = black_key_position[black_key_index]
                 if (note_num == undefined) { continue }
 
-                const key_center_position = black_key_index * white_key_width
-                // Draw left-half and right-half.
-                draw.fillStyle = "#000000"
-                draw.fillRect(
-                    key_center_position - black_key_half_width, 0,
-                    black_key_half_width * 2, black_key_height
-                )
-
-                // Label.
-                draw.fillStyle = "#ffffff"
-                draw.fillText(
-                    mapping_from_note_name[midi_note_to_name[black_key_position[black_key_index]]!],
-                    key_center_position, black_key_height - 50
-                )
+                drawBlackKey({
+                    index: black_key_index,
+                    label: mapping_from_note_name[midi_note_to_name[black_key_position[black_key_index]]!]
+                })
             }
         }
         else if (param.mode == "keypress" || param.mode == "keyrelease")
