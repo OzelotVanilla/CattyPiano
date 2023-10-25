@@ -4,12 +4,15 @@ import "./piano.scss";
 import { convertKeyNameToNoteNum, convertNoteNumToKeyName, keys } from "@/utils/music";
 import { Button, Typography } from "antd";
 const { Text } = Typography
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SoundManager } from "./manager/SoundManager";
 import { InputManager } from "./manager/InputManager";
 import { GameManager } from "./manager/GameManager";
 import { GraphicManager } from "./manager/GraphicManager";
 
+const handleKeydown = useCallback(InputManager.processKeyDownEvent.bind(InputManager), [])
+const handleKeyup = useCallback(InputManager.processKeyUpEvent.bind(InputManager), [])
+const handleResize = useCallback(GraphicManager.handleWindowResize.bind(GraphicManager), [])
 
 export default function PianoPage()
 {
@@ -26,23 +29,22 @@ export default function PianoPage()
     useEffect(() => 
     {
         // Should bind `this` because this is JavaScript.
-        document.addEventListener("keydown", InputManager.processKeyDownEvent.bind(InputManager), true)
-        document.addEventListener("keyup", InputManager.processKeyUpEvent.bind(InputManager), true)
-        window.addEventListener("resize", GraphicManager.handleWindowResize.bind(GraphicManager))
+        document.addEventListener("keydown", handleKeydown, true)
+        document.addEventListener("keyup", handleKeyup, true)
+        window.addEventListener("resize", handleResize)
 
         // Destructor
         return () =>
         {
-            document.removeEventListener("keydown", InputManager.processKeyDownEvent.bind(InputManager))
-            document.removeEventListener("keyup", InputManager.processKeyUpEvent.bind(InputManager))
-            window.removeEventListener("resize", GraphicManager.handleWindowResize.bind(GraphicManager))
+            document.removeEventListener("keydown", handleKeydown)
+            document.removeEventListener("keyup", handleKeyup)
+            window.removeEventListener("resize", handleResize)
         }
     }, [])
 
     // If the layout of piano should change:
     useEffect(() =>
     {
-        GraphicManager.adjustGameCanvasSize()
         GraphicManager.drawPianoKeyboardOffscreen({ mode: "layout", start_num: keyboard_start, end_num: keyboard_end })
         GraphicManager.draw()
     }, [keyboard_start, keyboard_end])
