@@ -22,9 +22,7 @@ export class GraphicManager
     static {
         if (isClientEnvironment())
         {
-            this.canvas_for_piano_keyboard = new OffscreenCanvas(
-                this.game_area_width, this.game_area_height * this.keyboard_config.piano_keyboard_height_ratio
-            )
+            this.adjustGameCanvasSize()
         }
     }
 
@@ -90,7 +88,7 @@ export class GraphicManager
                 index * white_key_width, 0,
                 white_key_width, white_key_height
             )
-            draw.strokeRect(
+            draw.strokeRect( // Border for the white key.
                 index * white_key_width, 0,
                 white_key_width, white_key_height
             )
@@ -216,14 +214,11 @@ export class GraphicManager
 
             const [key_to_draw, key_is_sharp] = [param.key_num, isSharpKey(param.key_num)]
             const key_position = (key_is_sharp ? black_key_position : white_key_position).indexOf(key_to_draw)
-            const key_affected = key_is_sharp
-                ? white_key_position.slice(key_position - 1, key_position + 1) // affect another two white keys
-                : black_key_position.slice(key_position, key_position + 2)     // affect another two black keys
 
-            // First draw key.
+            // Draw key.
             draw.textAlign = "center"
             draw.font = `40px "Consolas", serif`
-            if (key_is_sharp) // Draw black key will affect no keys
+            if (key_is_sharp) // Draw black key will affect no keys.
             {
                 drawBlackKey({
                     index: key_position,
@@ -231,7 +226,7 @@ export class GraphicManager
                     is_pressed: param.mode == "keypress"
                 })
             }
-            else // There is two black key being affected by redraw white key
+            else // There is one or two black key being affected by redrawing white key.
             {
                 drawWhiteKey({
                     index: key_position,
@@ -262,7 +257,7 @@ export class GraphicManager
         }
         else
         {
-            throw TypeError(`Unsupported mode for drawPianoKeyboard: ${param.mode}`)
+            throw TypeError(`Unsupported mode for drawPianoKeyboard: "${param.mode}".`)
         }
 
         // Restore after job
