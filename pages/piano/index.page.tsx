@@ -10,9 +10,6 @@ import { InputManager } from "./manager/InputManager";
 import { GameManager } from "./manager/GameManager";
 import { GraphicManager } from "./manager/GraphicManager";
 
-const handleKeydown = useCallback(InputManager.processKeyDownEvent.bind(InputManager), [])
-const handleKeyup = useCallback(InputManager.processKeyUpEvent.bind(InputManager), [])
-const handleResize = useCallback(GraphicManager.handleWindowResize.bind(GraphicManager), [])
 
 export default function PianoPage()
 {
@@ -20,6 +17,10 @@ export default function PianoPage()
     GameManager; // Controls game mode or some other high level things like the key hit.
     SoundManager; // Play the game sound.
     InputManager; // Accept raw input, and trigger corresponding action.
+
+    const handleKeydown = useCallback(InputManager.processKeyDownEvent.bind(InputManager), [])
+    const handleKeyup = useCallback(InputManager.processKeyUpEvent.bind(InputManager), [])
+    const handleResize = useCallback(GraphicManager.handleWindowResize.bind(GraphicManager), [])
 
     // Record user settings about the keyboard
     let [keyboard_start, setKeyboardStart] = useState(57)
