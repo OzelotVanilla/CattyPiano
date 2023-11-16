@@ -4,6 +4,11 @@
         "play_button_text": "进入游戏",
         "help_button_text": "操作教学"
     },
+    "piano": {
+        "screen_mode": "荧幕模式",
+        "full_screen_mode": "全屏幕",
+        "curve_screen_mode": "曲面屏"
+    },
     "lang": {
         "en": "English (英语)",
         "zh": "中文"

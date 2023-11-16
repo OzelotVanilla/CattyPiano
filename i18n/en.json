@@ -4,6 +4,11 @@
         "play_button_text": "Play",
         "help_button_text": "How to Play"
     },
+    "piano": {
+        "screen_mode": "Screen Mode",
+        "full_screen_mode": "Full Screen",
+        "curve_screen_mode": "Curve Screen"
+    },
     "lang": {
         "en": "English",
         "zh": "中文 (Chinese)"
