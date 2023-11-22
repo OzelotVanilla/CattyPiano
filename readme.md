@@ -32,3 +32,13 @@ node_modules/
 ```
 
 To avoid the conflict of `.gitignore`, it is suggested for you to create your own.
+
+Acknowledgement
+----
+
+This project is originated from a class project in Human Computer Interaction (CPS 3601),
+Wenzhou-Kean University, 2023 Autumn Semester.
+
+Until the permission is granted from the supervisor of this project,
+this project does not allowed to be used without mentioning about the original authors,
+nor be derived to create a new project.
