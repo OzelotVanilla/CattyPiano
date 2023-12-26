@@ -22,10 +22,12 @@ export class GraphicManager
     static {
         if (isClientEnvironment())
         {
-            this.adjustGameCanvasSize()
         }
     }
 
+    /**
+     * Caution: Only call this function after the page load finish.
+     */
     public static adjustGameCanvasSize()
     {
         const game_canvas_draw = this.game_canvas.getContext("2d")!
@@ -68,7 +70,7 @@ export class GraphicManager
         const draw = this.canvas_for_piano_keyboard.getContext("2d")!
         // const draw = this.game_canvas.getContext("2d")! // debug purpose
 
-        const mapping_from_note_name = GameManager.getKeyMapping("note_to_key")
+        const mapping_from_note_name = GameManager.getPianoKeyMapping("note_to_key")
 
         const [width, height] = [this.canvas_for_piano_keyboard.width, this.canvas_for_piano_keyboard.height]
         const [white_key_width, white_key_height] =

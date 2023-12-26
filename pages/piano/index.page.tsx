@@ -38,13 +38,14 @@ export default function PianoPage()
     let [screen_mode, setScreenMode] = useState(ScreenMode.normal)
     let [is_setting_open, setSettingOpen] = useState(false)
 
-    // Any key stroke will be passed to the Input Manager.
+    // On mount. Any key stroke will be passed to the Input Manager.
     useEffect(() => 
     {
         // Should bind `this` because this is JavaScript.
         document.addEventListener("keydown", handleKeydown, true)
         document.addEventListener("keyup", handleKeyup, true)
         window.addEventListener("resize", handleResize)
+        GraphicManager.adjustGameCanvasSize()
 
         // Destructor
         return () =>
