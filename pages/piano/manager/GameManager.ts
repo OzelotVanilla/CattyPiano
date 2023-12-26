@@ -21,7 +21,7 @@ export class GameManager
 {
     public static piano_mode: PianoMode = PianoMode.trival;
 
-    private static keymapping_setting: Map<PianoMode, Record<string, string>> = new Map([
+    private static pianokey_mapping_setting: Map<PianoMode, Record<string, string>> = new Map([
         [PianoMode.trival, default_piano_keyboard_layout]
     ])
 
@@ -35,7 +35,7 @@ export class GameManager
      */
     public static getKeyDown(event: KeyboardEvent)
     {
-        const keyboard_layout = this.getKeyMapping()!
+        const keyboard_layout = this.getPianoKeyMapping()!
         const key = event.key
         switch (this.piano_mode)
         {
@@ -53,7 +53,7 @@ export class GameManager
 
     public static getKeyUp(event: KeyboardEvent, all_key_released: boolean = false)
     {
-        const keyboard_layout = this.getKeyMapping()!
+        const keyboard_layout = this.getPianoKeyMapping()!
         const key = event.key
         switch (this.piano_mode)
         {
@@ -98,9 +98,9 @@ export class GameManager
     private static triggerGameNoteHoldFinish() { }
 
     /** Get the mapping of key */
-    public static getKeyMapping(order: "key_to_note" | "note_to_key" = "key_to_note")
+    public static getPianoKeyMapping(order: "key_to_note" | "note_to_key" = "key_to_note")
     {
-        const mapping = this.keymapping_setting.get(this.piano_mode)
+        const mapping = this.pianokey_mapping_setting.get(this.piano_mode)
         if (mapping == undefined) { return {} }
 
         if (order == "key_to_note") { return mapping }
