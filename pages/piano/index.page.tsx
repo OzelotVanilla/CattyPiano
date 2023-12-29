@@ -4,7 +4,7 @@ import "./piano.scss";
 import { convertKeyNameToNoteNum, convertNoteNumToKeyName, keys } from "@/utils/music";
 import { Button, FloatButton, Modal, Space, Typography } from "antd";
 const { Text } = Typography
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SoundManager } from "./manager/SoundManager";
 import { InputManager } from "./manager/InputManager";
 import { GameManager } from "./manager/GameManager";
@@ -17,6 +17,10 @@ enum ScreenMode { normal, curve_screen }
 const left_screen_ratio = new Map<ScreenMode, number>([
     [ScreenMode.normal, 0], [ScreenMode.curve_screen, 30]
 ])
+
+const default_piano_setting: PianoSetting = {
+    screen_mode: ScreenMode.normal
+}
 
 export default function PianoPage()
 {
@@ -35,8 +39,8 @@ export default function PianoPage()
     let [keyboard_start, setKeyboardStart] = useState(57)
     let [keyboard_end, setKeyboardEnd] = useState(74)
     // The UI settings
-    let [screen_mode, setScreenMode] = useState(ScreenMode.normal)
     let [is_setting_open, setSettingOpen] = useState(false)
+    let [piano_setting, setPianoSetting] = useState(default_piano_setting)
 
     // On mount. Any key stroke will be passed to the Input Manager.
     useEffect(() => 
@@ -63,7 +67,7 @@ export default function PianoPage()
         GraphicManager.draw()
     }, [keyboard_start, keyboard_end])
 
-    const screen_left_part_width_ratio = left_screen_ratio.get(screen_mode) ?? 0
+    const screen_left_part_width_ratio = left_screen_ratio.get(piano_setting.screen_mode) ?? 0
     const screen_right_part_width_ratio = 100 - screen_left_part_width_ratio
 
     return (<div id="game_panel">
@@ -71,21 +75,55 @@ export default function PianoPage()
         <div id="screen_right_part" style={{ width: `${screen_right_part_width_ratio}%` }}>
             <canvas id="piano_game"></canvas>
         </div>
-        <Modal open={is_setting_open} onOk={_ => setSettingOpen(false)}>
-            <Space>
-                <Text>{text.piano.screen_mode}</Text>
-                <Button
-                    type={screen_mode == ScreenMode.normal ? "primary" : "default"}
-                    onClick={_ => setScreenMode(ScreenMode.normal)}>
-                    {text.piano.full_screen_mode}
-                </Button>
-                <Button
-                    type={screen_mode == ScreenMode.curve_screen ? "primary" : "default"}
-                    onClick={_ => setScreenMode(ScreenMode.curve_screen)}>
-                    {text.piano.curve_screen_mode}
-                </Button>
-            </Space>
-        </Modal>
+        <PianoSettingModal
+            piano_setting={piano_setting} setPianoSetting={setPianoSetting}
+            is_setting_open={is_setting_open} setSettingOpen={setSettingOpen} />
         <FloatButton className="SettingButton" icon={<SettingOutlined />} onClick={_ => setSettingOpen(true)} />
     </div>)
+}
+
+function PianoSettingModal({
+    piano_setting, setPianoSetting, is_setting_open, setSettingOpen
+}: PianoSettingModal_Prop)
+{
+    const { text } = useI18N()
+    const old_setting = useRef(piano_setting)
+
+    function onOk()
+    {
+        setSettingOpen(false)
+    }
+
+    function onCancel()
+    {
+        setPianoSetting(old_setting.current)
+        setSettingOpen(false)
+    }
+
+    return (<Modal open={is_setting_open} onOk={onOk} onCancel={onCancel}>
+        <Space>
+            <Text>{text.piano.screen_mode}</Text>
+            <Button
+                type={piano_setting.screen_mode == ScreenMode.normal ? "primary" : "default"}
+                onClick={_ => setPianoSetting({ ...piano_setting, screen_mode: ScreenMode.normal })}>
+                {text.piano.full_screen_mode}
+            </Button>
+            <Button
+                type={piano_setting.screen_mode == ScreenMode.curve_screen ? "primary" : "default"}
+                onClick={_ => setPianoSetting({ ...piano_setting, screen_mode: ScreenMode.curve_screen })}>
+                {text.piano.curve_screen_mode}
+            </Button>
+        </Space>
+    </Modal>)
+}
+
+type PianoSettingModal_Prop = {
+    piano_setting: PianoSetting
+    setPianoSetting: (v: PianoSetting) => any
+    is_setting_open: boolean
+    setSettingOpen: (v: boolean) => any
+}
+
+type PianoSetting = {
+    screen_mode: ScreenMode
 }

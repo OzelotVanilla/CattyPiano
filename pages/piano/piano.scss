@@ -1,8 +1,26 @@
 @import "../global.scss";
 
-#piano_game
+#game_panel
 {
-    display: block;
     width: 100%;
     height: 100%;
+    display: flex;
+    flex-direction: row;
+
+    #screen_left_part, #screen_right_part
+    {
+        height: 100%;
+    }
+
+    #piano_game
+    {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+
+    .SettingButton
+    {
+        top: max(20px, 2vh);
+    }
 }
