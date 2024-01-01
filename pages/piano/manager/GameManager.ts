@@ -1,16 +1,33 @@
+import { getTransport } from "tone";
 import { GraphicManager } from "./GraphicManager";
 import { SoundManager } from "./SoundManager";
 import { PossibleNoteName, default_piano_keyboard_layout, midi_note_to_name } from "@/utils/constant_store";
 
 export enum PianoMode
 {
-    /** Just make the piano looks like a real life piano */
+    /** Make the piano a simulator. */
     trival = "trival",
+
     /** 
      * The keyboard acts in the game, 
-     *  while the keyboard range that trigger specific key, is wider.
+     *  while the keyboard range that trigger a specific key, is wider.
      */
     in_game = "in_game"
+}
+
+export enum GameStatus
+{
+    /** The game have not start yet. */
+    not_start = "not_start",
+
+    /** The game is currently running, BGM should being played. */
+    running = "running",
+
+    /** The game is paused, can be resumed. */
+    paused = "paused",
+
+    /** The game finishes a round, should show result panel soon. */
+    finished = "finished"
 }
 
 type PlayingNoteInfo = {
@@ -19,7 +36,7 @@ type PlayingNoteInfo = {
 
 export class GameManager
 {
-    public static piano_mode: PianoMode = PianoMode.trival;
+    public static piano_mode: PianoMode = PianoMode.trival
 
     private static pianokey_mapping_setting: Map<PianoMode, Record<string, string>> = new Map([
         [PianoMode.trival, default_piano_keyboard_layout]
@@ -28,6 +45,104 @@ export class GameManager
     private static note_playing: Map<string, PlayingNoteInfo> = new Map()
 
     public static get game_time() { return SoundManager.getBgmPlayerTime() }
+
+    /** 
+     * Start the piano's game loop, and do initialisation work.
+     * 
+     * **Warning**:
+     * This function should only be called to **do initialisation**.
+     * To resume a paused game, use `GameManager.resumePianoGame` instead.
+     */
+    public static startPianoGame()
+    {
+        if (this.game_status != GameStatus.not_start)
+        {
+            throw TypeError(
+                `Could only start game that is not start yet (current status is "${this.game_status}").`
+            )
+        }
+
+        // Set game status to `GameStatus.running`, so the game loop will runs until the game is ended.
+        this.game_status = GameStatus.running
+        getTransport().context.resume()
+            .then(_ =>
+            {
+                getTransport().start()
+                SoundManager.startBgm()
+                this.loopPianoGame()
+            })
+    }
+
+    private static paused_at: number = 0
+
+    /** 
+     * Pause a running game.
+     * 
+     * **Warning**:
+     * This function should only be called when the game is **running**.
+     * If a game is `not_start` or `finished`, do not call this function.
+     */
+    public static pausePianoGame()
+    {
+        if (this.game_status != GameStatus.running)
+        {
+            throw TypeError(
+                `Could only pause game that is running now (current status is "${this.game_status}").`
+            )
+        }
+
+        const tonejs_transport = getTransport()
+        // Set game status to `GameStatus.pause`, so the loop will stop next loop.
+        this.game_status = GameStatus.paused
+        tonejs_transport.pause()
+        this.paused_at = tonejs_transport.seconds
+        SoundManager.pauseBgm()
+    }
+
+    /** 
+     * Resume a paused game.
+     * 
+     * **Warning**:
+     * This function should only be called when the game is paused.
+     */
+    public static resumePianoGame()
+    {
+        if (this.game_status != GameStatus.paused)
+        {
+            throw TypeError(
+                `Could only resume game that is paused before (current status is "${this.game_status}").`
+            )
+        }
+
+        const tonejs_transport = getTransport()
+        // Set game status to `GameStatus.running`, so the game loop will runs until the game is ended.
+        this.game_status = GameStatus.running
+        tonejs_transport.start()
+        tonejs_transport.seconds = this.paused_at // Must set `seconds` here to prevent freezing the transport.
+        SoundManager.resumeBgm()
+        this.loopPianoGame()
+    }
+
+    private static readonly doGameLoop = this.loopPianoGame.bind(GameManager)
+
+    /** 
+     * Main loop for the piano game.
+     * 
+     * Call `startPianoGame`, `resumePianoGame` or other function instead of directly calling this.
+     * Once launched, it could be stopped by setting the `game_status` to `pause` or `not_start`.
+     */
+    private static loopPianoGame()
+    {
+        // Check if this loop can run or not.
+        if (this.game_status != GameStatus.running) { return }
+
+        // Get current time (relative to the `Tone.Transport` time, NOT `AudioContext` time)
+        const current_time = getTransport().seconds
+        console.log(`Current time ${current_time}.`)
+
+        // Schedule next loop as soon as possible.
+        setTimeout(GameManager.doGameLoop)
+    }
 
     /**
      * Check the key being pressed,

@@ -110,13 +110,17 @@ export class SoundManager
 
     public static startBgm()
     {
-        getToneTransport().start()
         return this.bgm_player.start()
     }
 
     public static pauseBgm()
     {
         return this.bgm_player.stop()
+    }
+
+    public static resumeBgm()
+    {
+        return this.bgm_player.start(undefined, getToneTransport().seconds)
     }
 
     public static convertInputNotesToKeyNames(value: string | number | string[] | number[]): string[]
