@@ -4,7 +4,7 @@ import { midi_note_to_name } from "@/utils/constant_store";
 import { isClientEnvironment } from "@/utils/env";
 import { convertNoteNumToKeyName } from "@/utils/music";
 import { Sampler, Player } from "tone"
-import { getTransport as getToneTransport } from "tone";
+import { getTransport as getToneTransport, context as tone_context } from "tone";
 import { Time } from "tone/build/esm/core/type/Units";
 
 export const global_audio_channel_count = 6
@@ -51,7 +51,7 @@ export class SoundManager
     {
         let keys_to_play = this.convertInputNotesToKeyNames(note)
 
-        this.tonejs_instruments.get(instrument)?.triggerAttackRelease(keys_to_play, duration)
+        this.tonejs_instruments.get(instrument)?.triggerAttackRelease(keys_to_play, duration, tone_context.currentTime)
     }
 
     public static startNote(midi_note_number: number, instrument?: AvailableInstrument): void;
@@ -68,7 +68,7 @@ export class SoundManager
         instrument: AvailableInstrument = "piano"
     )
     {
-        this.tonejs_instruments.get(instrument)?.triggerAttack(this.convertInputNotesToKeyNames(note))
+        this.tonejs_instruments.get(instrument)?.triggerAttack(this.convertInputNotesToKeyNames(note), tone_context.currentTime)
     }
 
     public static releaseNote(midi_note_number: number, instrument?: AvailableInstrument): void;
@@ -85,12 +85,12 @@ export class SoundManager
         instrument: AvailableInstrument = "piano"
     )
     {
-        this.tonejs_instruments.get(instrument)?.triggerRelease(this.convertInputNotesToKeyNames(note))
+        this.tonejs_instruments.get(instrument)?.triggerRelease(this.convertInputNotesToKeyNames(note), tone_context.currentTime)
     }
 
     public static releaseAllNote(instrument: AvailableInstrument = "piano")
     {
-        this.tonejs_instruments.get(instrument)?.releaseAll()
+        this.tonejs_instruments.get(instrument)?.releaseAll(tone_context.currentTime)
     }
 
     public static getPiano()
