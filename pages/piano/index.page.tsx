@@ -24,11 +24,6 @@ const default_piano_setting: PianoSetting = {
 
 export default function PianoPage()
 {
-    // Load the static code inside
-    GameManager; // Controls game mode or some other high level things like the key hit.
-    SoundManager; // Play the game sound.
-    InputManager; // Accept raw input, and trigger corresponding action.
-
     const handleKeydown = useCallback(InputManager.processKeyDownEvent.bind(InputManager), [])
     const handleKeyup = useCallback(InputManager.processKeyUpEvent.bind(InputManager), [])
     const handleResize = useCallback(GraphicManager.handleWindowResize.bind(GraphicManager), [])
@@ -45,6 +40,11 @@ export default function PianoPage()
     // On mount. Any key stroke will be passed to the Input Manager.
     useEffect(() => 
     {
+        // Load the static code inside
+        GameManager; // Controls game mode or some other high level things like the key hit.
+        SoundManager; // Play the game sound.
+        InputManager; // Accept raw input, and trigger corresponding action.
+
         // Should bind `this` because this is JavaScript.
         document.addEventListener("keydown", handleKeydown, true)
         document.addEventListener("keyup", handleKeyup, true)
