@@ -42,6 +42,10 @@ export class GameManager
         [PianoMode.trival, default_piano_keyboard_layout]
     ])
 
+    private static _game_status: GameStatus = GameStatus.not_start
+    public static get game_status() { return this._game_status }
+    private static set game_status(value) { this._game_status = value }
+
     private static note_playing: Map<string, PlayingNoteInfo> = new Map()
 
     public static get game_time() { return SoundManager.getBgmPlayerTime() }
