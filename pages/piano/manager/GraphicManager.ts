@@ -48,7 +48,7 @@ export class GraphicManager
         // Draw piano keyboard
         {
             const dest_height = height * (1 - this.keyboard_config.piano_keyboard_height_ratio)
-            game_canvas_draw?.drawImage(this.canvas_for_piano_keyboard, 0, dest_height)
+            game_canvas_draw.drawImage(this.canvas_for_piano_keyboard, 0, dest_height)
         }
     }
 
@@ -71,6 +71,45 @@ export class GraphicManager
         // const draw = this.game_canvas.getContext("2d")! // debug purpose
 
         const mapping_from_note_name = GameManager.getPianoKeyMapping("note_to_key")
+
+        // See if need to update calculated position array for white and black key
+        if (
+            param.mode == "layout"
+            || this.keyboard_config.white_key_position.length == 0
+        )
+        {
+            const start_num = param.mode == "layout" ? param.start_num : this.keyboard_config.start_num
+            const end_num = param.mode == "layout" ? param.end_num : this.keyboard_config.end_num
+            // Need to display a whole keyboard: no sharp key at the edge.
+            const [start_key, end_key] = [
+                isSharpKey(start_num) ? start_num - 1 : start_num,
+                isSharpKey(end_num) ? end_num + 1 : end_num
+            ]
+
+            this.keyboard_config.start_num = start_num
+            this.keyboard_config.end_num = end_num
+
+            // First get the sequence of keys to draw. If necessary
+            // The position is calculated and stored in an array that:
+            // * For white keys, no special.
+            // * For black keys, index is the position towards its **right** white key.
+            const keys_name =
+                [...new Array(end_num - start_num + 1)].map((_, n) => midi_note_to_name[n + start_num]) as string[]
+            const white_key_count = keys_name.filter(s => (!s.includes("#"))).length
+            // console.log(`white_key_count`, white_key_count)
+            let [white_keys_position, black_keys_position] =
+                [new Array(white_key_count) as number[], new Array(white_key_count) as number[]];
+            for (let [current_key, white_key_index] = [start_key, 0]; current_key <= end_key; current_key++)
+            {
+                if (!isSharpKey(current_key)) { white_keys_position[white_key_index++] = current_key }
+                else { black_keys_position[white_key_index] = current_key }
+            }
+            // console.log("Black key:", black_keys_position)
+            // console.log("White key:", white_keys_position)
+
+            this.keyboard_config.white_key_position = white_keys_position
+            this.keyboard_config.black_key_position = black_keys_position
+        }
 
         const [width, height] = [this.canvas_for_piano_keyboard.width, this.canvas_for_piano_keyboard.height]
         const [white_key_width, white_key_height] =
@@ -129,50 +168,11 @@ export class GraphicManager
 
         if (param.mode == "layout" || param.mode == "redraw")
         {
-            const start_num = param.mode == "layout" ? param.start_num : this.keyboard_config.start_num
-            const end_num = param.mode == "layout" ? param.end_num : this.keyboard_config.end_num
-
             // console.log("param: ", param)
 
-            // Need to display a whole keyboard: no sharp key at the edge.
-            const [start_key, end_key] = [
-                isSharpKey(start_num) ? start_num - 1 : start_num,
-                isSharpKey(end_num) ? end_num + 1 : end_num
-            ]
             // draw.fillStyle = "#decafe" // Debug purpose, to detect the size of piano.
             draw.fillStyle = "#ffffff"
             draw.clearRect(0, 0, width, height) // Clear the screen
-
-            // See if need to update calculated position array for white and black key
-            if (
-                param.mode == "layout"
-                || this.keyboard_config.white_key_position.length == 0
-            )
-            {
-                this.keyboard_config.start_num = start_num
-                this.keyboard_config.end_num = end_num
-
-                // First get the sequence of keys to draw. If necessary
-                // The position is calculated and stored in an array that:
-                // * For white keys, no special.
-                // * For black keys, index is the position towards its **right** white key.
-                const keys_name =
-                    [...new Array(end_num - start_num + 1)].map((_, n) => midi_note_to_name[n + start_num]) as string[]
-                const white_key_count = keys_name.filter(s => (!s.includes("#"))).length
-                // console.log(`white_key_count`, white_key_count)
-                let [white_keys_position, black_keys_position] =
-                    [new Array(white_key_count) as number[], new Array(white_key_count) as number[]];
-                for (let [current_key, white_key_index] = [start_key, 0]; current_key <= end_key; current_key++)
-                {
-                    if (!isSharpKey(current_key)) { white_keys_position[white_key_index++] = current_key }
-                    else { black_keys_position[white_key_index] = current_key }
-                }
-                // console.log("Black key:", black_keys_position)
-                // console.log("White key:", white_keys_position)
-
-                this.keyboard_config.white_key_position = white_keys_position
-                this.keyboard_config.black_key_position = black_keys_position
-            }
 
             // Then use the array to draw the piano
             const [white_key_position, black_key_position] =
