@@ -7,7 +7,14 @@
     "piano": {
         "screen_mode": "荧幕模式",
         "full_screen_mode": "全屏幕",
-        "curve_screen_mode": "曲面屏"
+        "curve_screen_mode": "曲面屏",
+        "sim_mode": "钢琴模拟",
+        "game_mode": "音乐游戏",
+        "song_playing": "现在的曲目",
+        "not_selected": "尚未选择曲目",
+        "select_now": "现在选择",
+        "song_select_title": "选择要游玩的曲目",
+        "warn_not_selected": "您还没有选择任何歌曲!"
     },
     "lang": {
         "en": "English (英语)",

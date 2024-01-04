@@ -6,7 +6,7 @@ import { PossibleNoteName, default_piano_keyboard_layout, midi_note_to_name } fr
 export enum PianoMode
 {
     /** Make the piano a simulator. */
-    trival = "trival",
+    simulator = "simulator",
 
     /** 
      * The keyboard acts in the game, 
@@ -36,10 +36,11 @@ type PlayingNoteInfo = {
 
 export class GameManager
 {
-    public static piano_mode: PianoMode = PianoMode.trival
+    public static piano_mode: PianoMode = PianoMode.simulator
 
     private static pianokey_mapping_setting: Map<PianoMode, Record<string, string>> = new Map([
-        [PianoMode.trival, default_piano_keyboard_layout]
+        [PianoMode.simulator, default_piano_keyboard_layout],
+        [PianoMode.in_game, default_piano_keyboard_layout]
     ])
 
     private static _game_status: GameStatus = GameStatus.not_start
@@ -68,13 +69,14 @@ export class GameManager
 
         // Set game status to `GameStatus.running`, so the game loop will runs until the game is ended.
         this.game_status = GameStatus.running
-        getTransport().context.resume()
-            .then(_ =>
+        getTransport().context.resume().then(
+            () =>
             {
                 getTransport().start()
                 SoundManager.startBgm()
-                this.loopPianoGame()
-            })
+                this.doGameLoop()
+            }
+        )
     }
 
     private static paused_at: number = 0
@@ -124,7 +126,7 @@ export class GameManager
         tonejs_transport.start()
         tonejs_transport.seconds = this.paused_at // Must set `seconds` here to prevent freezing the transport.
         SoundManager.resumeBgm()
-        this.loopPianoGame()
+        this.doGameLoop()
     }
 
     private static readonly doGameLoop = this.loopPianoGame.bind(GameManager)
@@ -158,7 +160,7 @@ export class GameManager
         const key = event.key
         switch (this.piano_mode)
         {
-            case PianoMode.trival: // Do not need to check whether correct
+            case PianoMode.simulator: // Do not need to check whether correct
                 if (keyboard_layout[key] == undefined) { return }
 
                 GraphicManager.drawPianoKeyboardOffscreen({
@@ -176,7 +178,7 @@ export class GameManager
         const key = event.key
         switch (this.piano_mode)
         {
-            case PianoMode.trival:
+            case PianoMode.simulator:
                 if (keyboard_layout[key] == undefined) { return }
 
                 GraphicManager.drawPianoKeyboardOffscreen({

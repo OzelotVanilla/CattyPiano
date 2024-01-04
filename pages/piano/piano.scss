@@ -19,8 +19,37 @@
         height: 100%;
     }
 
+    .PianoModeButtonGroup
+    {
+        top: max(20px, 2vh);
+        left: max(20px, 2vw);
+        display: flex;
+        flex-direction: row;
+        gap: max(10px, 0.8vw);
+        width: max-content;
+        height: fit-content;
+
+        .SelectNowButton
+        {
+            color: #0094c8;
+        }
+    }
+
     .SettingButton
     {
         top: max(20px, 2vh);
+    }
+}
+
+#song_select_list
+{
+    .SongListItem
+    {
+        cursor: pointer;
+    }
+
+    .SelectedSong
+    {
+        background-color: #eaedf7;
     }
 }

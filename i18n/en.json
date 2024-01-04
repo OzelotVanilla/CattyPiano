@@ -7,7 +7,14 @@
     "piano": {
         "screen_mode": "Screen Mode",
         "full_screen_mode": "Full Screen",
-        "curve_screen_mode": "Curve Screen"
+        "curve_screen_mode": "Curve Screen",
+        "sim_mode": "Piano Simulator",
+        "game_mode": "Music Game",
+        "song_playing": "Song Playing Now",
+        "not_selected": "Not Selected Yet",
+        "select_now": "Select Now",
+        "song_select_title": "Select a Song to Play",
+        "warn_not_selected": "No song has been selected yet."
     },
     "lang": {
         "en": "English",
