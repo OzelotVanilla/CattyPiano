@@ -36,7 +36,6 @@ export class SoundManager
                     release: 1
                 }).toDestination()
             )
-            this.bgm_player = new Player().sync().toDestination()
         }
     }
 

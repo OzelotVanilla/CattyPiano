@@ -9,7 +9,6 @@ export class GraphicManager
     public static get game_area_width() { return this.game_canvas.width }
     public static get game_area_height() { return this.game_canvas.height }
 
-    private static canvas_for_piano_keyboard: OffscreenCanvas;
 
     private static keyboard_config = {
         start_num: 57, end_num: 74,
@@ -72,7 +71,6 @@ export class GraphicManager
 
         const note_name_to_key = GameManager.getPianoKeyMapping("note_to_key")
 
-        // See if need to update calculated position array for white and black key
         if (
             param.mode == "layout"
             || this.keyboard_config.white_keys_position.length == 0
@@ -109,13 +107,6 @@ export class GraphicManager
 
             this.keyboard_config.white_keys_position = white_keys_position
             this.keyboard_config.black_keys_position = black_keys_position
-        }
-
-        const [width, height] = [this.canvas_for_piano_keyboard.width, this.canvas_for_piano_keyboard.height]
-        const [white_key_width, white_key_height] =
-            [width / this.keyboard_config.white_key_position.length, height]
-        const [black_key_half_width, black_key_height] =
-            [(13.7 / 23.5) * white_key_width / 2, 0.6 * white_key_height]
 
         type drawKey_Param = { index: number, label: string, is_pressed?: boolean }
 

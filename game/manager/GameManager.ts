@@ -144,7 +144,6 @@ export class GameManager
 
         // Get current time (relative to the `Tone.Transport` time, NOT `AudioContext` time)
         const current_time = getTransport().seconds
-        console.log(`Current time ${current_time}.`)
 
         // Schedule next loop as soon as possible.
         setTimeout(GameManager.doGameLoop)

@@ -4,10 +4,10 @@ import "./piano.scss";
 import { Button, FloatButton, List, Modal, Space, Typography, notification } from "antd";
 const { Text, Title } = Typography
 import { Dispatch, SetStateAction, useCallback, useEffect, useRef, useState } from "react";
-import { SoundManager } from "./manager/SoundManager";
-import { InputManager } from "./manager/InputManager";
-import { GameManager, PianoMode } from "./manager/GameManager";
-import { GraphicManager } from "./manager/GraphicManager";
+import { SoundManager } from "@/game/manager/SoundManager";
+import { InputManager } from "@/game/manager/InputManager";
+import { GameManager, PianoMode } from "@/game/manager/GameManager";
+import { GraphicManager } from "@/game/manager/GraphicManager";
 import { ReloadOutlined, SettingOutlined } from "@ant-design/icons";
 import { useI18N } from "@/i18n/i18n";
 
