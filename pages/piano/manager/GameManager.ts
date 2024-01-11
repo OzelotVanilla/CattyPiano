@@ -163,7 +163,7 @@ export class GameManager
             case PianoMode.simulator: // Do not need to check whether correct
                 if (keyboard_layout[key] == undefined) { return }
 
-                GraphicManager.drawPianoKeyboardOffscreen({
+                GraphicManager.preparePianoKeyboardOffscreen({
                     mode: "keypress", key_num: midi_note_to_name.indexOf(keyboard_layout[key] as PossibleNoteName)
                 })
                 GraphicManager.draw()
@@ -181,7 +181,7 @@ export class GameManager
             case PianoMode.simulator:
                 if (keyboard_layout[key] == undefined) { return }
 
-                GraphicManager.drawPianoKeyboardOffscreen({
+                GraphicManager.preparePianoKeyboardOffscreen({
                     mode: "keyrelease", key_num: midi_note_to_name.indexOf(keyboard_layout[key] as PossibleNoteName)
                 })
                 GraphicManager.draw()

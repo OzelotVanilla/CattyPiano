@@ -69,7 +69,7 @@ export default function PianoPage()
     // If the layout of piano should change:
     useEffect(() =>
     {
-        GraphicManager.drawPianoKeyboardOffscreen({ mode: "layout", start_num: keyboard_start, end_num: keyboard_end })
+        GraphicManager.preparePianoKeyboardOffscreen({ mode: "layout", start_num: keyboard_start, end_num: keyboard_end })
         GraphicManager.draw()
     }, [keyboard_start, keyboard_end])
 

@@ -13,7 +13,7 @@ export class GraphicManager
 
     private static keyboard_config = {
         start_num: 57, end_num: 74,
-        white_key_position: [] as number[], black_key_position: [] as number[],
+        white_keys_position: [] as number[], black_keys_position: [] as number[],
         piano_keyboard_height_ratio: 0.28,
         white_key_release_bg: "#ffffff", white_key_pressed_bg: "#cccccc", white_key_label_colour: "#000000",
         black_key_release_bg: "#000000", black_key_pressed_bg: "#777777", black_key_label_colour: "#ffffff",
@@ -56,7 +56,7 @@ export class GraphicManager
     {
         console.log(`Get window resize.`)
         this.adjustGameCanvasSize()
-        this.drawPianoKeyboardOffscreen({ mode: "redraw" })
+        this.preparePianoKeyboardOffscreen({ mode: "redraw" })
         this.draw()
     }
 
@@ -65,17 +65,17 @@ export class GraphicManager
     /**
      * Only need to call if the keyboard change.
      */
-    public static drawPianoKeyboardOffscreen(param: drawPianoKeyboard_Param)
+    public static preparePianoKeyboardOffscreen(param: preparePianoKeyboardOffscreen_Param)
     {
         const draw = this.canvas_for_piano_keyboard.getContext("2d")!
         // const draw = this.game_canvas.getContext("2d")! // debug purpose
 
-        const mapping_from_note_name = GameManager.getPianoKeyMapping("note_to_key")
+        const note_name_to_key = GameManager.getPianoKeyMapping("note_to_key")
 
         // See if need to update calculated position array for white and black key
         if (
             param.mode == "layout"
-            || this.keyboard_config.white_key_position.length == 0
+            || this.keyboard_config.white_keys_position.length == 0
         )
         {
             const start_num = param.mode == "layout" ? param.start_num : this.keyboard_config.start_num
@@ -107,8 +107,8 @@ export class GraphicManager
             // console.log("Black key:", black_keys_position)
             // console.log("White key:", white_keys_position)
 
-            this.keyboard_config.white_key_position = white_keys_position
-            this.keyboard_config.black_key_position = black_keys_position
+            this.keyboard_config.white_keys_position = white_keys_position
+            this.keyboard_config.black_keys_position = black_keys_position
         }
 
         const [width, height] = [this.canvas_for_piano_keyboard.width, this.canvas_for_piano_keyboard.height]
@@ -176,7 +176,7 @@ export class GraphicManager
 
             // Then use the array to draw the piano
             const [white_key_position, black_key_position] =
-                [this.keyboard_config.white_key_position, this.keyboard_config.black_key_position]
+                [this.keyboard_config.white_keys_position, this.keyboard_config.black_keys_position]
             // console.log("white_key_position:\n", white_key_position)
             // console.log("mapping_from_note_name:\n", mapping_from_note_name)
 
@@ -189,7 +189,7 @@ export class GraphicManager
             {
                 drawWhiteKey({
                     index: white_key_index,
-                    label: mapping_from_note_name[midi_note_to_name[white_key_position[white_key_index]]!]
+                    label: note_name_to_key[midi_note_to_name[white_key_position[white_key_index]]!]
                 })
             }
 
@@ -201,7 +201,7 @@ export class GraphicManager
 
                 drawBlackKey({
                     index: black_key_index,
-                    label: mapping_from_note_name[midi_note_to_name[black_key_position[black_key_index]]!]
+                    label: note_name_to_key[midi_note_to_name[black_key_position[black_key_index]]!]
                 })
             }
         }
@@ -211,11 +211,11 @@ export class GraphicManager
                 ? this.key_being_pressed.add(param.key_num)
                 : this.key_being_pressed.delete(param.key_num)
 
-            const [white_key_position, black_key_position] =
-                [this.keyboard_config.white_key_position, this.keyboard_config.black_key_position]
+            const [white_keys_position, black_keys_position] =
+                [this.keyboard_config.white_keys_position, this.keyboard_config.black_keys_position]
 
             const [key_to_draw, key_is_sharp] = [param.key_num, isSharpKey(param.key_num)]
-            const key_position = (key_is_sharp ? black_key_position : white_key_position).indexOf(key_to_draw)
+            const key_position = (key_is_sharp ? black_keys_position : white_keys_position).indexOf(key_to_draw)
 
             // Draw key.
             draw.textAlign = "center"
@@ -224,7 +224,7 @@ export class GraphicManager
             {
                 drawBlackKey({
                     index: key_position,
-                    label: mapping_from_note_name[midi_note_to_name[key_to_draw]!],
+                    label: note_name_to_key[midi_note_to_name[key_to_draw]!],
                     is_pressed: param.mode == "keypress"
                 })
             }
@@ -232,7 +232,7 @@ export class GraphicManager
             {
                 drawWhiteKey({
                     index: key_position,
-                    label: mapping_from_note_name[midi_note_to_name[key_to_draw]!],
+                    label: note_name_to_key[midi_note_to_name[key_to_draw]!],
                     is_pressed: param.mode == "keypress"
                 })
 
@@ -241,7 +241,7 @@ export class GraphicManager
                 {
                     drawBlackKey({
                         index: key_position,
-                        label: mapping_from_note_name[midi_note_to_name[key_to_draw - 1]!],
+                        label: note_name_to_key[midi_note_to_name[key_to_draw - 1]!],
                         is_pressed: this.key_being_pressed.has(key_to_draw - 1)
                     })
                 }
@@ -251,7 +251,7 @@ export class GraphicManager
                 {
                     drawBlackKey({
                         index: key_position + 1,
-                        label: mapping_from_note_name[midi_note_to_name[key_to_draw + 1]!],
+                        label: note_name_to_key[midi_note_to_name[key_to_draw + 1]!],
                         is_pressed: this.key_being_pressed.has(key_to_draw + 1)
                     })
                 }
@@ -268,7 +268,7 @@ export class GraphicManager
     }
 }
 
-type drawPianoKeyboard_Param = {
+type preparePianoKeyboardOffscreen_Param = {
     /** The layout (affected by number of keys) going to be inited or has changed. */
     mode: "layout"
     start_num: number
