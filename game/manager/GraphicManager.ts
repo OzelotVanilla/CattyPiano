@@ -1,4 +1,4 @@
-import { midi_note_to_name } from "@/utils/constant_store";
+import { midi_note_to_name, NoteStyle, note_styles } from "@/utils/constant_store";
 import { isClientEnvironment } from "@/utils/env";
 import { isSharpKey } from "@/utils/music";
 import { GameManager, GameNote } from "./GameManager";
@@ -23,6 +23,8 @@ export class GraphicManager
         white_key_release_bg: "#ffffff", white_key_pressed_bg: "#cccccc", white_key_label_colour: "#000000",
         black_key_release_bg: "#000000", black_key_pressed_bg: "#777777", black_key_label_colour: "#ffffff",
     }
+
+    private static note_style: NoteStyle = "common"
 
     static {
         if (isClientEnvironment())
@@ -345,14 +347,14 @@ export class GraphicManager
         draw.clearRect(0, 0, width, height) // Clear the screen
 
         // Debug purpose
-        // const draw = this.game_canvas.getContext("2d")! 
-        // const [width, height] = [this.game_canvas.width, this.game_canvas.height]
         // draw.fillStyle = "#eae5e3"
         // draw.fillRect(0, 0, width, height)
-        // this.drawKeyboardOnly()
 
         // console.log(param.notes.map(e => `${e.note.midi_num}:${e.note.time}:${e.distance}`))
-        draw.fillStyle = "#decafe"
+        const note_style = note_styles[this.note_style]
+        draw.fillStyle = note_style.background_colour
+        const note_width = note_style.width
+        const note_half_width = note_width / 2
         for (const note_and_distance of param.notes)
         {
             const { note, distance } = note_and_distance
@@ -365,20 +367,26 @@ export class GraphicManager
             else
             {
                 const midi_num = note_and_distance.note.midi_num
-                const key_offset = (isSharpKey(midi_num)
-                    ? this.keyboard_config.black_keys_position
-                    : this.keyboard_config.white_keys_position)
-                    .indexOf(midi_num)
+                const key_offset = isSharpKey(midi_num)
+                    ? this.keyboard_config.black_keys_position.indexOf(midi_num)
+                    : this.keyboard_config.white_keys_position.indexOf(midi_num)
+
+                /** The center of the note rectangle that is going to be drawn. */
                 const x_axis_offset =
                     (isSharpKey(midi_num)
-                        ? this.keyboard_config.white_key_width - this.keyboard_config.black_key_width / 2
-                        : 0)
+                        ? 0
+                        : this.keyboard_config.white_key_width / 2)
                     + this.keyboard_config.white_key_width * key_offset;
+
+                // Draw the note.
                 draw.fillRect(
-                    x_axis_offset, height - distance,
-                    -50, -20
+                    x_axis_offset - note_half_width, height - distance,
+                    note_width, -20
                 )
             }
+
+            // Debug purpose
+            // this.drawNotesAreaOnly()
         }
 
         return this

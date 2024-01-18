@@ -42,3 +42,19 @@ export const midi_note_to_name = [
 type GetReadonlyArrayInnerType<ReadonlyArray extends readonly any[]> = ReadonlyArray[number];
 
 export type PossibleNoteName = GetReadonlyArrayInnerType<typeof midi_note_to_name>;
+
+export const note_styles: { [style_name in NoteStyle]: NoteStyleConfig } = {
+    "common": {
+        width: 50,
+        background_colour: "#decafe"
+    }
+}
+
+export type NoteStyle = "common"
+
+export type NoteStyleConfig = {
+    /** Width in px. */
+    width: number
+    /** Background of the note. */
+    background_colour: CanvasFillStrokeStyles["fillStyle"]
+}
