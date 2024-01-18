@@ -1,3 +1,4 @@
+import { GameNote } from "@/game/manager/GameManager"
 import { midi_note_to_name } from "./constant_store"
 
 export const keys = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] as const
@@ -43,7 +44,7 @@ export function convertKeyNameToNoteNum(key_name: string)
 
 export function isSharpKey(midi_note_num: number)
 {
-    return midi_note_to_name[midi_note_num]?.includes("#")
+    return midi_note_to_name[midi_note_num]?.includes("#") ?? false
 }
 
 /**
@@ -57,7 +58,7 @@ export function isSharpKey(midi_note_num: number)
  * @param start_num Start of the given range, inclusive.
  * @param end_num End of the given range, inclusive.
  */
-export function shiftToRange(midi_note_num: number, start_num: number, end_num: number)
+export function shiftMIDINumToRange(midi_note_num: number, start_num: number, end_num: number)
 {
     if (!Number.isInteger(midi_note_num)) { throw TypeError(`Note number ${midi_note_num} is not an integer!`) }
     if (midi_note_num < 21 || midi_note_num > 108) { throw RangeError(`Note number ${midi_note_num} out of range.`) }
@@ -82,4 +83,29 @@ export function shiftToRange(midi_note_num: number, start_num: number, end_num: 
 
         return midi_note_num - 12 * octave_difference
     }
+}
+
+export function shiftNoteToRange(game_note: GameNote, start_num: number, end_num: number): GameNote
+{
+    return { ...game_note, midi_num: shiftMIDINumToRange(game_note.midi_num, start_num, end_num) }
+}
+
+/**
+ * Try to get an octave from given range that is start with `C` and end with `B`, return the range in tuple.
+ * 
+ * If not found, return both `-1`.
+ * 
+ * @param start_num Start of the given range, inclusive.
+ * @param end_num End of the given range, inclusive.
+ */
+export function pickOctaveRangedCtoB(start_num: number, end_num: number): [number, number]
+{
+    // First, get the guess position of the `C`.
+    const position_c = Math.floor((start_num - 21) / 12) * 12 + 24
+    const position_b = position_c + 11
+
+    // If already out of range.
+    if (position_b > end_num) { return [-1, -1] }
+    // Else guess is valid.
+    else { return [position_c, position_b] }
 }

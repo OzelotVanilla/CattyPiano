@@ -10,10 +10,12 @@ import { GameManager, PianoMode } from "@/game/manager/GameManager";
 import { GraphicManager } from "@/game/manager/GraphicManager";
 import { ReloadOutlined, SettingOutlined } from "@ant-design/icons";
 import { useI18N } from "@/i18n/i18n";
+import path from "path";
 
 import game_sheet_info from "@/public/game_sheet/info.json"
 import { jsonfyResponse } from "@/utils/common";
 import { isClientEnvironment } from "@/utils/env";
+import { SongJSONData } from "@/game/MusicSheet";
 
 enum ScreenMode { normal, curve_screen }
 
@@ -32,8 +34,10 @@ export default function PianoPage()
     const handleResize = useCallback(GraphicManager.handleWindowResize.bind(GraphicManager), [])
 
     // Record user settings about the keyboard
-    let [keyboard_start, setKeyboardStart] = useState(57)
-    let [keyboard_end, setKeyboardEnd] = useState(74)
+    let [keyboard_start, setKeyboardStart] = useState(57) // 57
+    let [keyboard_end, setKeyboardEnd] = useState(74) // 74
+    GameManager.pianokey_start = keyboard_start
+    GameManager.pianokey_end = keyboard_end
 
     let [piano_mode, setPianoMode] = useState(GameManager.piano_mode)
 
@@ -171,6 +175,7 @@ function SongSelectModal({
         {
             setSongPlaying(song_selected_in_list)
             setSongSelectOpen(false)
+            GameManager.loadAndStartPianoGame(song_selected_in_list.folder_path)
         }
         else
         {
@@ -194,9 +199,9 @@ function SongSelectModal({
         {
             const available_songs = await Promise.all(available_songs_folder_name.map(
                 async (folder_name) =>
-                    fetch(`/game_sheet/${folder_name}/song.json`)
+                    fetch(path.join("/game_sheet", folder_name, "song.json"))
                         .then(jsonfyResponse)
-                        .then((info: SongJSONData) => ({ ...info, folder_path: `/game_sheet/${folder_name}/song.json` }))
+                        .then((info: SongJSONData) => ({ ...info, folder_path: path.join("/game_sheet", folder_name) }))
                         .catch(r => { console.error(r); return null; })
             ));
 
@@ -245,12 +250,6 @@ type SongSelectModal_Prop = {
     setSongPlaying: Dispatch<SetStateAction<SongData | null>>
 }
 
-type SongJSONData = {
-    name: string
-    bgm?: string
-    sheet?: string
-}
-
 type SongData = SongJSONData & {
     folder_path: string
 }
@@ -273,17 +272,29 @@ function PianoSettingModal({
         setSettingOpen(false)
     }
 
+    function onSelectNormalScreen()
+    {
+        setPianoSetting({ ...piano_setting, screen_mode: ScreenMode.normal })
+        GraphicManager.handleWindowResize()
+    }
+
+    function onSelectCurveScreen()
+    {
+        setPianoSetting({ ...piano_setting, screen_mode: ScreenMode.curve_screen })
+        GraphicManager.handleWindowResize()
+    }
+
     return (<Modal open={is_setting_open} onOk={onOk} onCancel={onCancel}>
         <Space>
             <Text>{text.piano.screen_mode}</Text>
             <Button
                 type={piano_setting.screen_mode == ScreenMode.normal ? "primary" : "default"}
-                onClick={_ => setPianoSetting({ ...piano_setting, screen_mode: ScreenMode.normal })}>
+                onClick={onSelectNormalScreen}>
                 {text.piano.full_screen_mode}
             </Button>
             <Button
                 type={piano_setting.screen_mode == ScreenMode.curve_screen ? "primary" : "default"}
-                onClick={_ => setPianoSetting({ ...piano_setting, screen_mode: ScreenMode.curve_screen })}>
+                onClick={onSelectCurveScreen}>
                 {text.piano.curve_screen_mode}
             </Button>
         </Space>

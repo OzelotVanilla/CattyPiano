@@ -36,6 +36,7 @@ export class SoundManager
                     release: 1
                 }).toDestination()
             )
+            this.bgm_player = new Player().sync().toDestination()
         }
     }
 
@@ -102,7 +103,18 @@ export class SoundManager
         return this.bgm_player.immediate()
     }
 
-    public static loadBgm(url: string)
+    /**
+     * Return the length of the currently loaded BGM in seconds.
+     */
+    public static getBgmLength()
+    {
+        return this.bgm_player.buffer.duration
+    }
+
+    /**
+     * Notice that this method is done asyncly. Please use `await` when necessary.
+     */
+    public static async loadBgm(url: string)
     {
         return this.bgm_player.load(url)
     }
