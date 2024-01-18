@@ -36,8 +36,6 @@ export default function PianoPage()
     // Record user settings about the keyboard
     let [keyboard_start, setKeyboardStart] = useState(57) // 57
     let [keyboard_end, setKeyboardEnd] = useState(74) // 74
-    GameManager.pianokey_start = keyboard_start
-    GameManager.pianokey_end = keyboard_end
 
     let [piano_mode, setPianoMode] = useState(GameManager.piano_mode)
 
@@ -73,6 +71,7 @@ export default function PianoPage()
     // If the layout of piano should change:
     useEffect(() =>
     {
+        GameManager.setNewPianoKeyRange(keyboard_start, keyboard_end)
         GraphicManager.preparePianoKeyboardOffscreen({ mode: "layout", start_num: keyboard_start, end_num: keyboard_end })
         GraphicManager.draw()
     }, [keyboard_start, keyboard_end])

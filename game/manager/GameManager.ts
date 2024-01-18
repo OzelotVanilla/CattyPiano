@@ -8,7 +8,7 @@ import path from "path";
 import { convertToSeconds, jsonfyResponse } from "@/utils/common";
 import { SheetNote_Constructor } from "../SheetNote";
 import { Time } from "tone/build/esm/core/type/Units";
-import { pickOctaveRangedCtoB, shiftNoteToRange } from "@/utils/music";
+import { isSharpKey, pickOctaveRangedCtoB, shiftNoteToRange } from "@/utils/music";
 
 export enum PianoMode
 {
@@ -56,11 +56,40 @@ export class GameManager
 
     private static _pianokey_start: number = 57
     public static get pianokey_start() { return this._pianokey_start }
-    public static set pianokey_start(value) { if (value >= 21 && value < this.pianokey_end) { this._pianokey_start = value } }
 
     private static _pianokey_end: number = 74
     public static get pianokey_end() { return this._pianokey_end }
-    public static set pianokey_end(value) { if (value <= 108 && value > this.pianokey_start) { this._pianokey_end = value } }
+
+    /**
+     * TODO: A static function that accept a pair of keyboard range.
+     */
+    public static setNewPianoKeyRange(start: number, end: number)
+    {
+        if (start < 21 || end > 108 || start >= end)
+        {
+            throw RangeError(`Error start or end`)
+        }
+        if (isSharpKey(start) || isSharpKey(end))
+        {
+            throw RangeError(`Cannot start or end on a black key.`)
+        }
+
+        let white_key = ["a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'"]
+        let black_key = ["", "w", "e", "r", "t", "y", "u", "i", "o", "p", "["]
+        let key_count = 0
+
+        let layout: Record<string, string> = {}
+        for (let i = start; i <= end; i++)
+        {
+            if (key_count > white_key.length) { throw RangeError(`Too many Keys`) }
+
+            if (isSharpKey(i)) { layout[black_key[key_count]] = midi_note_to_name[i]! }
+            else { layout[white_key[key_count++]] = midi_note_to_name[i]! }
+        }
+
+        this.pianokey_mapping_setting.set(PianoMode.simulator, layout)
+        this.pianokey_mapping_setting.set(PianoMode.in_game, layout)
+    }
 
     private static _game_status: GameStatus = GameStatus.not_start
     public static get game_status() { return this._game_status }
@@ -82,7 +111,7 @@ export class GameManager
     /** The time limit (in second) for a already-passed note to wait players to trigger. */
     public static get note_miss_time_limit() { return this._note_miss_time_limit }
     /** The time limit (in second) for a already-passed note to wait players to trigger, should be bigger than 0. */
-    public static set note_miss_time_limit(value) 
+    public static set note_miss_time_limit(value)
     {
         if (value <= 0) { throw RangeError(`Cannot set note miss limit that is less or equal to 0 (now setting ${value} as limit).`) }
         this._note_miss_time_limit = value
@@ -338,7 +367,7 @@ export class GameManager
         }
 
         // Use rating to generate score.
-        
+
     }
 
     /**
