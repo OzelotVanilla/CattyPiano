@@ -50,11 +50,47 @@ export class GameManager
         [PianoMode.in_game, default_piano_keyboard_layout]
     ])
 
+    // private static funckey_mapping_setting:Map<PianoMode,Record<string,string>>=new Map([
+    //     [PianoMode.trival,]
+    // ])
+
+    private static _pianokey_start: number = 57
+    public static get pianokey_start() { return this._pianokey_start }
+    public static set pianokey_start(value) { if (value >= 21 && value < this.pianokey_end) { this._pianokey_start = value } }
+
+    private static _pianokey_end: number = 74
+    public static get pianokey_end() { return this._pianokey_end }
+    public static set pianokey_end(value) { if (value <= 108 && value > this.pianokey_start) { this._pianokey_end = value } }
+
     private static _game_status: GameStatus = GameStatus.not_start
     public static get game_status() { return this._game_status }
     private static set game_status(value) { this._game_status = value }
 
     private static game_notes: GameNote[] | null = null
+
+    private static _note_falling_speed = 140
+    /** The falling speed of a note in pixel per second (px/s). */
+    public static get note_falling_speed() { return this._note_falling_speed }
+    /** Set the falling speed of a note in pixel per second (px/s), should be bigger than 0. */
+    public static set note_falling_speed(value)
+    {
+        if (value <= 0) { throw RangeError(`Cannot set speed that is less or equal to 0 (now setting ${value} as speed).`) }
+        this._note_falling_speed = value
+    }
+
+    private static _note_miss_time_limit = 0.5
+    /** The time limit (in second) for a already-passed note to wait players to trigger. */
+    public static get note_miss_time_limit() { return this._note_miss_time_limit }
+    /** The time limit (in second) for a already-passed note to wait players to trigger, should be bigger than 0. */
+    public static set note_miss_time_limit(value) 
+    {
+        if (value <= 0) { throw RangeError(`Cannot set note miss limit that is less or equal to 0 (now setting ${value} as limit).`) }
+        this._note_miss_time_limit = value
+    }
+
+    private static _note_late_time_limit = 0.1
+    /** The time limit (in second) for a late-trigger note to only get *normal* rating. */
+    public static get note_late_time_limit() { return this._note_late_time_limit }
 
     private static note_playing: Map<string, PlayingNoteInfo> = new Map()
 
@@ -172,9 +208,137 @@ export class GameManager
 
         // Get current time (relative to the `Tone.Transport` time, NOT `AudioContext` time)
         const current_time = getTransport().seconds
+        // console.log(`Current time ${current_time}.`)
+
+        // Notes displaying.
+        const index_of_first_on_screen_note = this.game_notes!.findIndex(note => (!note.is_triggered))
+        if (index_of_first_on_screen_note >= 0) // There are still notes going to be displayed.
+        {
+            this.drawNoteInsideScreen(current_time, index_of_first_on_screen_note)
+        }
+        else // No notes should be displayed.
+        {
+            GraphicManager.eraseDrawNotesArea()
+
+            // Check if also need to cancel the game loop, and show the result.
+            if (current_time > this.bgm_length)
+            {
+                this.calculateGameResult()
+                return
+            }
+        }
+
 
         // Schedule next loop as soon as possible.
         setTimeout(GameManager.doGameLoop)
+    }
+
+    /**
+     * This should be only called by game loop.
+     */
+    private static drawNoteInsideScreen(current_time: number, index_of_first_on_screen_note: number)
+    {
+        //  Find the range of notes that could be drawn in this loop.
+        const notes = this.game_notes!
+        const notes_area_height = GraphicManager.game_area_height - GraphicManager.piano_keyboard_height
+        let notes_to_display: prepareNotesOffscreen_Param["notes"] = []
+        /** Will be `-1` if not found. */
+        const [key_range_start, key_range_end] = pickOctaveRangedCtoB(this.pianokey_start, this.pianokey_end)
+
+        for (let i = index_of_first_on_screen_note; i < notes.length; i++)
+        {
+            const note = notes[i]
+            // Do not display already triggered.
+            if (note.is_triggered) { continue }
+            // Calculate the distance of this note (from top of keyboard to itself).
+            const time_diff = note.time_in_seconds - current_time
+            // That means this note is missed. Note that `note_miss_time_limit` is positive.
+            if (time_diff < (-this.note_miss_time_limit))
+            {
+                this.triggerGameNoteMiss(i)
+            }
+            const distance = time_diff >= 0
+                ? time_diff * this.note_falling_speed // Note approaching to be played.
+                : 0 // Note going to be missed. Will wait at the piano edge, and removed after time limit.
+
+            if (distance > notes_area_height) // Until this note, all previous notes are able to be displayed.
+            {
+                break
+            }
+            else // Add current distance into the array.
+            {
+                // Shift all note to the octave that starts from `C` to `B`.
+                notes_to_display.push({ note: shiftNoteToRange(note, key_range_start, key_range_end), distance })
+            }
+        }
+
+        // Put notes to the screen and draw the notes
+        GraphicManager.prepareNotesOffscreen({ notes: notes_to_display }).drawNotesAreaOnly()
+    }
+
+    /**
+     * Return the result of a game.
+     * 
+     * This should be only called by game loop.
+     */
+    private static async calculateGameResult()
+    {
+        let note_rating_count = new Map<NoteRating, number>([
+            [NoteRating.missed, 0], [NoteRating.normal, 0],
+            [NoteRating.good, 0], [NoteRating.great, 0], [NoteRating.perfect, 0]
+        ])
+
+        const [miss_limit, late_limit] = [GameManager.note_miss_time_limit, GameManager.note_late_time_limit]
+
+        function increase(note_rating: NoteRating)
+        {
+            note_rating_count.set(note_rating, (note_rating_count.get(note_rating)!) + 1)
+        }
+
+        for (const note of this.game_notes!)
+        {
+            const {
+                press_starts_at: s_time, press_ends_at: e_time,
+                time_in_seconds, duration_in_seconds
+            } = note
+            const [press_starts_at, press_ends_at] = [convertToSeconds(s_time), convertToSeconds(e_time)]
+
+            // If missed
+            if (press_starts_at < 0) { increase(NoteRating.missed) }
+            else // Not missed
+            {
+                let diff_percent = 0
+                const time_diff = press_starts_at - time_in_seconds
+                if (press_ends_at <= 0)  // It is a "tap" note
+                {
+                    diff_percent = time_diff < late_limit
+                        ? Math.abs(press_starts_at - time_in_seconds) / miss_limit
+                        : 0.6
+                }
+                else  // It is a "hold" note
+                {
+                    const note_end = time_in_seconds + duration_in_seconds
+                    const trigger_diff = time_diff < late_limit
+                        ? Math.abs(press_starts_at - time_in_seconds)
+                        : 0.6
+                    const release_diff = press_ends_at > note_end
+                        ? 0
+                        : Math.abs(press_ends_at - note_end)
+                    diff_percent = (trigger_diff + release_diff) / 2 / miss_limit
+                }
+
+                // Get rating using the `diff_percent`.
+                if (diff_percent > 1) { increase(NoteRating.missed) }
+                else if (diff_percent > 0.6) { increase(NoteRating.normal) }
+                else if (diff_percent > 0.4) { increase(NoteRating.good) }
+                else if (diff_percent > 0.05) { increase(NoteRating.great) }
+                else if (diff_percent > 0) { increase(NoteRating.perfect) }
+                else { throw RangeError(`Bad \`diff_percent\` calculated: ${diff_percent}.`) }
+            }
+        }
+
+        // Use rating to generate score.
+        
     }
 
     /**
@@ -239,13 +403,26 @@ export class GameManager
     }
 
     /** For in game note that only requires a tap. */
-    private static triggerGameNoteTap() { }
+    private static triggerGameNoteTap(note: GameNote)
+    {
+
+    }
 
     /** For in game note that requires long touch, this start the holding. */
     private static triggerGameNoteHoldStart() { }
 
     /** For in game note that requires long touch, this finish the holding. */
     private static triggerGameNoteHoldFinish() { }
+
+    private static triggerGameNoteMiss(note_index: number)
+    {
+        const result: Partial<GameNote_SpecialMember_WithDefault> = {
+            is_triggered: true,
+            press_starts_at: -1
+        }
+
+        this.game_notes![note_index] = { ...this.game_notes![note_index], ...result }
+    }
 
     /** Get the mapping of key */
     public static getPianoKeyMapping(order: "key_to_note" | "note_to_key" = "key_to_note")
@@ -313,6 +490,12 @@ export class GameManager
             )
     }
 
+    /** Get mapping of the functional key */
+    public static getFunctionalKeyMapping()
+    {
+
+    }
+}
 
 /**
  * The member that only exists in `GameNote`, for which has a default value at init.
@@ -356,4 +539,16 @@ type GameNote_SpecialMember_ShouldCalc = {
 /** The note that appears in the game. */
 export type GameNote = SheetNote_Constructor & GameNote_SpecialMember_WithDefault & GameNote_SpecialMember_ShouldCalc
 
+enum NoteRating
+{
+    /** 失 */
+    missed = "missed",
+    /** 可 */
+    normal = "normal",
+    /** 良 */
+    good = "good",
+    /** 優 */
+    great = "great",
+    /** 極 */
+    perfect = "perfect"
 }

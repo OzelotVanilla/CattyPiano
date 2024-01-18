@@ -19,6 +19,11 @@ export const default_piano_keyboard_layout = {
     "\'": "D5"
 }
 
+export const default_function_key_layout = {
+    "ArrowLeft": "",
+    "ArrowRight": "",
+}
+
 export const midi_note_to_name = [
     undefined, // array starts with 0.
     undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,

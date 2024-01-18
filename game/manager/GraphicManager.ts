@@ -1,7 +1,7 @@
 import { midi_note_to_name } from "@/utils/constant_store";
 import { isClientEnvironment } from "@/utils/env";
 import { isSharpKey } from "@/utils/music";
-import { GameManager } from "./GameManager";
+import { GameManager, GameNote } from "./GameManager";
 
 export class GraphicManager
 {
@@ -9,10 +9,16 @@ export class GraphicManager
     public static get game_area_width() { return this.game_canvas.width }
     public static get game_area_height() { return this.game_canvas.height }
 
+    private static canvas_for_piano_keyboard: OffscreenCanvas
+    public static get piano_keyboard_height() { return this.canvas_for_piano_keyboard.height }
+
+    private static canvas_for_notes: OffscreenCanvas
 
     private static keyboard_config = {
         start_num: 57, end_num: 74,
         white_keys_position: [] as number[], black_keys_position: [] as number[],
+        white_key_width: 0, white_key_height: 0, black_key_width: 0, black_key_height: 0,
+        /** From 0 to 1. */
         piano_keyboard_height_ratio: 0.28,
         white_key_release_bg: "#ffffff", white_key_pressed_bg: "#cccccc", white_key_label_colour: "#000000",
         black_key_release_bg: "#000000", black_key_pressed_bg: "#777777", black_key_label_colour: "#ffffff",
@@ -35,20 +41,37 @@ export class GraphicManager
         this.canvas_for_piano_keyboard = new OffscreenCanvas(
             window.innerWidth, window.innerHeight * this.keyboard_config.piano_keyboard_height_ratio
         )
+        this.canvas_for_notes = new OffscreenCanvas(
+            window.innerWidth, window.innerHeight * (1 - this.keyboard_config.piano_keyboard_height_ratio)
+        )
     }
 
+    /** This will fetch and draw the image in the offscreen canvas. */
     public static draw()
+    {
+        this.drawKeyboardOnly()
+        this.drawNotesAreaOnly()
+
+        return this
+    }
+
+    public static drawKeyboardOnly()
     {
         const game_canvas = this.game_canvas
         const game_canvas_draw = game_canvas.getContext("2d")!
         const width = game_canvas.width
         const height = game_canvas.height
 
+        // Draw notes area.
+        game_canvas_draw.drawImage(this.canvas_for_notes, 0, 0)
+
         // Draw piano keyboard
         {
             const dest_height = height * (1 - this.keyboard_config.piano_keyboard_height_ratio)
             game_canvas_draw.drawImage(this.canvas_for_piano_keyboard, 0, dest_height)
         }
+
+        return this
     }
 
     public static handleWindowResize()
@@ -71,6 +94,9 @@ export class GraphicManager
 
         const note_name_to_key = GameManager.getPianoKeyMapping("note_to_key")
 
+        const [width, height] = [this.canvas_for_piano_keyboard.width, this.canvas_for_piano_keyboard.height]
+
+        // See if need to update calculated position array for white and black key.
         if (
             param.mode == "layout"
             || this.keyboard_config.white_keys_position.length == 0
@@ -107,6 +133,32 @@ export class GraphicManager
 
             this.keyboard_config.white_keys_position = white_keys_position
             this.keyboard_config.black_keys_position = black_keys_position
+
+            this.keyboard_config = {
+                ...this.keyboard_config,
+                white_keys_position, black_keys_position
+            }
+        }
+        // See if need to calculate the height and width of the keys.
+        if (
+            param.mode == "redraw"
+            || this.keyboard_config.black_key_width <= 0 || this.keyboard_config.white_key_width <= 0
+            || this.keyboard_config.white_key_height <= 0 || this.keyboard_config.black_key_height <= 0
+        )
+        {
+            const [white_key_width, white_key_height] =
+                [width / this.keyboard_config.white_keys_position.length, height]
+            const [black_key_width, black_key_height] =
+                [(13.7 / 23.5) * white_key_width, 0.6 * white_key_height]
+
+            this.keyboard_config = {
+                ...this.keyboard_config,
+                white_key_width, white_key_height, black_key_width, black_key_height
+            }
+        }
+
+        const { white_key_width, white_key_height, black_key_height, black_key_width } = this.keyboard_config
+        const black_key_half_width = black_key_width / 2
 
         type drawKey_Param = { index: number, label: string, is_pressed?: boolean }
 
@@ -256,6 +308,80 @@ export class GraphicManager
         // Restore after job
         draw.fillStyle = "#ffffff"
         draw.textAlign = "left"
+
+        return this
+    }
+
+    public static drawNotesAreaOnly()
+    {
+        const game_canvas_draw = this.game_canvas.getContext("2d")!
+        const [width, height] = [this.canvas_for_notes.width, this.canvas_for_notes.height]
+        game_canvas_draw.clearRect(0, 0, width, height) // Clear the screen
+        game_canvas_draw.drawImage(this.canvas_for_notes, 0, 0)
+
+        return this
+    }
+
+    /**
+     * Erase the notes area offscreen canvas, and then draw it.
+     */
+    public static eraseDrawNotesArea()
+    {
+        const game_canvas_draw = this.game_canvas.getContext("2d")!
+        const [width, height] = [this.canvas_for_notes.width, this.canvas_for_notes.height]
+        game_canvas_draw.clearRect(0, 0, width, height) // Clear the screen
+
+        return this
+    }
+
+    /**
+     * The buffer of the note that is going to be drawn.
+     */
+    public static prepareNotesOffscreen(param: prepareNotesOffscreen_Param)
+    {
+        const draw = this.canvas_for_notes.getContext("2d")!
+        const [width, height] = [this.canvas_for_notes.width, this.canvas_for_notes.height]
+
+        draw.clearRect(0, 0, width, height) // Clear the screen
+
+        // Debug purpose
+        // const draw = this.game_canvas.getContext("2d")! 
+        // const [width, height] = [this.game_canvas.width, this.game_canvas.height]
+        // draw.fillStyle = "#eae5e3"
+        // draw.fillRect(0, 0, width, height)
+        // this.drawKeyboardOnly()
+
+        // console.log(param.notes.map(e => `${e.note.midi_num}:${e.note.time}:${e.distance}`))
+        draw.fillStyle = "#decafe"
+        for (const note_and_distance of param.notes)
+        {
+            const { note, distance } = note_and_distance
+
+            // If this note is already assigned with a key to press.
+            if (note.key_to_trigger != undefined)
+            {
+
+            }
+            else
+            {
+                const midi_num = note_and_distance.note.midi_num
+                const key_offset = (isSharpKey(midi_num)
+                    ? this.keyboard_config.black_keys_position
+                    : this.keyboard_config.white_keys_position)
+                    .indexOf(midi_num)
+                const x_axis_offset =
+                    (isSharpKey(midi_num)
+                        ? this.keyboard_config.white_key_width - this.keyboard_config.black_key_width / 2
+                        : 0)
+                    + this.keyboard_config.white_key_width * key_offset;
+                draw.fillRect(
+                    x_axis_offset, height - distance,
+                    -50, -20
+                )
+            }
+        }
+
+        return this
     }
 }
 
@@ -271,4 +397,14 @@ type preparePianoKeyboardOffscreen_Param = {
 } | {
     /** The layout does not change, only width or height of canvas changed */
     mode: "redraw"
+}
+
+export type prepareNotesOffscreen_Param = {
+    /** The notes going to be put on the offscreen. */
+    notes: ({
+        /** The game note itself. */
+        note: GameNote
+        /** The distance between the note and the top edge of the piano keyboard. */
+        distance: number
+    })[]
 }
