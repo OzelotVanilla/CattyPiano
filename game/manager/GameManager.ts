@@ -37,6 +37,22 @@ export enum GameStatus
     finished = "finished"
 }
 
+enum NoteRating
+{
+    /** Waiting for rating. */
+    not_rated_yet = "not_rated_yet",
+    /** 失 */
+    missed = "missed",
+    /** 末 */
+    bad = "bad",
+    /** 可 */
+    good = "good",
+    /** 良 */
+    great = "great",
+    /** 優 */
+    perfect = "perfect"
+}
+
 type PlayingNoteInfo = {
     triggered_at: number
 }
@@ -257,7 +273,6 @@ export class GameManager
             }
         }
 
-
         // Schedule next loop as soon as possible.
         setTimeout(GameManager.doGameLoop)
     }
@@ -305,69 +320,35 @@ export class GameManager
         GraphicManager.prepareNotesOffscreen({ notes: notes_to_display }).drawNotesAreaOnly()
     }
 
+    /** The highest point is 1, lowest 0. */
+    private static rating_to_point: Map<NoteRating, number> = new Map([
+        [NoteRating.missed, 0], [NoteRating.bad, 0.1],
+        [NoteRating.good, 0.4], [NoteRating.great, 0.8], [NoteRating.perfect, 1]
+    ])
+
     /**
      * Return the result of a game.
      * 
      * This should be only called by game loop.
      */
-    private static async calculateGameResult()
+    private static calculateGameResult()
     {
-        let note_rating_count = new Map<NoteRating, number>([
-            [NoteRating.missed, 0], [NoteRating.normal, 0],
+        let sum_score = 0
+        let rating_count = new Map([
+            [NoteRating.missed, 0], [NoteRating.bad, 0],
             [NoteRating.good, 0], [NoteRating.great, 0], [NoteRating.perfect, 0]
         ])
 
-        const [miss_limit, late_limit] = [GameManager.note_miss_time_limit, GameManager.note_late_time_limit]
-
-        function increase(note_rating: NoteRating)
-        {
-            note_rating_count.set(note_rating, (note_rating_count.get(note_rating)!) + 1)
-        }
-
         for (const note of this.game_notes!)
         {
-            const {
-                press_starts_at: s_time, press_ends_at: e_time,
-                time_in_seconds, duration_in_seconds
-            } = note
-            const [press_starts_at, press_ends_at] = [convertToSeconds(s_time), convertToSeconds(e_time)]
-
-            // If missed
-            if (press_starts_at < 0) { increase(NoteRating.missed) }
-            else // Not missed
-            {
-                let diff_percent = 0
-                const time_diff = press_starts_at - time_in_seconds
-                if (press_ends_at <= 0)  // It is a "tap" note
-                {
-                    diff_percent = time_diff < late_limit
-                        ? Math.abs(press_starts_at - time_in_seconds) / miss_limit
-                        : 0.6
-                }
-                else  // It is a "hold" note
-                {
-                    const note_end = time_in_seconds + duration_in_seconds
-                    const trigger_diff = time_diff < late_limit
-                        ? Math.abs(press_starts_at - time_in_seconds)
-                        : 0.6
-                    const release_diff = press_ends_at > note_end
-                        ? 0
-                        : Math.abs(press_ends_at - note_end)
-                    diff_percent = (trigger_diff + release_diff) / 2 / miss_limit
-                }
-
-                // Get rating using the `diff_percent`.
-                if (diff_percent > 1) { increase(NoteRating.missed) }
-                else if (diff_percent > 0.6) { increase(NoteRating.normal) }
-                else if (diff_percent > 0.4) { increase(NoteRating.good) }
-                else if (diff_percent > 0.05) { increase(NoteRating.great) }
-                else if (diff_percent > 0) { increase(NoteRating.perfect) }
-                else { throw RangeError(`Bad \`diff_percent\` calculated: ${diff_percent}.`) }
-            }
+            const { rating } = note
+            sum_score += this.rating_to_point.get(rating)!
+            rating_count.set(rating, rating_count.get(rating)! + 1)
         }
 
-        // Use rating to generate score.
-
+        return ({
+            sum_score, rating_count
+        })
     }
 
     /**
@@ -431,17 +412,41 @@ export class GameManager
         return this;
     }
 
-    /** For in game note that only requires a tap. */
-    private static triggerGameNoteTap(note: GameNote)
+    /**
+     * For in game note that only requires a tap.
+     * 
+     * This will be called only if a note is correctly triggered by input.
+     * The note be passed should be a **reference** created by the `Proxy`.
+     */
+    private static triggerGameNoteTap(note: GameNote, current_time: number = getTransport().seconds)
     {
-
+        note.is_triggered = true
+        note.press_starts_at = current_time
+        note.rating = this.rateGameNote(note)
     }
 
-    /** For in game note that requires long touch, this start the holding. */
-    private static triggerGameNoteHoldStart() { }
+    /**
+     * For in game note that requires long touch, this start the holding. 
+     * 
+     * This will be called only if a note is correctly triggered by input.
+     * The note be passed should be a **reference** created by the `Proxy`.
+     */
+    private static triggerGameNoteHoldStart(note: GameNote, current_time: number = getTransport().seconds)
+    {
+        note.press_starts_at = current_time
+    }
 
-    /** For in game note that requires long touch, this finish the holding. */
-    private static triggerGameNoteHoldFinish() { }
+    /** For in game note that requires long touch, this finish the holding.
+     * 
+     * This will be called only if a note is correctly triggered by input.
+     * The note be passed should be a **reference** created by the `Proxy`.
+     */
+    private static triggerGameNoteHoldFinish(note: GameNote, current_time: number = getTransport().seconds)
+    {
+        note.is_triggered = true
+        note.press_ends_at = current_time
+        note.rating = this.rateGameNote(note)
+    }
 
     private static triggerGameNoteMiss(note_index: number)
     {
@@ -451,6 +456,49 @@ export class GameManager
         }
 
         this.game_notes![note_index] = { ...this.game_notes![note_index], ...result }
+    }
+
+    private static rateGameNote(note: GameNote): NoteRating
+    {
+        const {
+            press_starts_at: s_time, press_ends_at: e_time,
+            time_in_seconds, duration_in_seconds
+        } = note
+        const [press_starts_at, press_ends_at] = [convertToSeconds(s_time), convertToSeconds(e_time)]
+
+        // If missed
+        if (press_starts_at < 0) { return NoteRating.missed }
+
+        // Not missed
+        const time_diff = press_starts_at - time_in_seconds
+        const [miss_limit, late_limit] = [GameManager.note_miss_time_limit, GameManager.note_late_time_limit]
+        let diff_percent = 0
+        // If it is a tap-to-trigger note.
+        if (note.fully_play_time == undefined)
+        {
+            diff_percent = time_diff < late_limit
+                ? Math.abs(press_starts_at - time_in_seconds) / miss_limit
+                : 0.6
+        }
+        else // If it is a hold-to-trigger note.
+        {
+            const note_end = time_in_seconds + duration_in_seconds
+            const trigger_diff = time_diff < late_limit
+                ? Math.abs(press_starts_at - time_in_seconds)
+                : 0.6
+            const release_diff = press_ends_at > note_end
+                ? 0
+                : Math.abs(press_ends_at - note_end)
+            diff_percent = (trigger_diff + release_diff) / 2 / miss_limit
+        }
+
+        // Get rating using the `diff_percent`.
+        if (diff_percent > 1) { return NoteRating.missed }
+        else if (diff_percent > 0.6) { return NoteRating.bad }
+        else if (diff_percent > 0.4) { return NoteRating.good }
+        else if (diff_percent > 0.05) { return NoteRating.great }
+        else if (diff_percent > 0) { return NoteRating.perfect }
+        else { throw RangeError(`Bad \`diff_percent\` calculated: ${diff_percent}.`) }
     }
 
     /** Get the mapping of key */
@@ -486,7 +534,7 @@ export class GameManager
     {
         const song_json_url = path.join(song_folder_url, "song.json")
         const init_game_notes_value: GameNote_SpecialMember_WithDefault = {
-            is_triggered: false,
+            is_triggered: false, rating: NoteRating.not_rated_yet,
             press_starts_at: 0, press_ends_at: 0
         }
         return await fetch(song_json_url)
@@ -548,6 +596,11 @@ type GameNote_SpecialMember_WithDefault = {
      * If this value is *equal to* 0, that means this note does **not** need **hold** to trigger.
      */
     press_ends_at: Time
+
+    /**
+     * The rating of the note.
+     */
+    rating: NoteRating
 }
 
 /**
@@ -567,17 +620,3 @@ type GameNote_SpecialMember_ShouldCalc = {
 
 /** The note that appears in the game. */
 export type GameNote = SheetNote_Constructor & GameNote_SpecialMember_WithDefault & GameNote_SpecialMember_ShouldCalc
-
-enum NoteRating
-{
-    /** 失 */
-    missed = "missed",
-    /** 可 */
-    normal = "normal",
-    /** 良 */
-    good = "good",
-    /** 優 */
-    great = "great",
-    /** 極 */
-    perfect = "perfect"
-}
