@@ -47,7 +47,11 @@ export type SheetNote_Constructor = {
     time: Time
     /** Note duration (play time). */
     duration: Time
-    /** Time to fully play this note in game. */
+    /**
+     * Time to fully play this note in game.
+     * 
+     * If it is `undefined` then the note is **tap**-to-trigger, otherwise, **hold**-to-trigger.
+     */
     fully_play_time?: Time
     /** 
      * Key to press to play this note.
