@@ -61,17 +61,8 @@ export class GraphicManager
     {
         const game_canvas = this.game_canvas
         const game_canvas_draw = game_canvas.getContext("2d")!
-        const width = game_canvas.width
-        const height = game_canvas.height
-
-        // Draw notes area.
-        game_canvas_draw.drawImage(this.canvas_for_notes, 0, 0)
-
-        // Draw piano keyboard
-        {
-            const dest_height = height * (1 - this.keyboard_config.piano_keyboard_height_ratio)
-            game_canvas_draw.drawImage(this.canvas_for_piano_keyboard, 0, dest_height)
-        }
+        const height = game_canvas.height * (1 - this.keyboard_config.piano_keyboard_height_ratio)
+        game_canvas_draw.drawImage(this.canvas_for_piano_keyboard, 0, height)
 
         return this
     }
@@ -329,9 +320,11 @@ export class GraphicManager
      */
     public static eraseDrawNotesArea()
     {
+        const note_draw = this.canvas_for_notes.getContext("2d")!
         const game_canvas_draw = this.game_canvas.getContext("2d")!
         const [width, height] = [this.canvas_for_notes.width, this.canvas_for_notes.height]
-        game_canvas_draw.clearRect(0, 0, width, height) // Clear the screen
+        note_draw.clearRect(0, 0, width, height) // Clear the offscreen canvas.
+        game_canvas_draw.clearRect(0, 0, width, height) // Clear the screen.
 
         return this
     }

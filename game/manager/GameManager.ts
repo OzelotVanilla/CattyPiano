@@ -113,7 +113,11 @@ export class GameManager
 
     private static game_notes: GameNote[] | null = null
 
-    /** Saved reference of the `GameNote` that could be triggered. Will be frequently updated by the game loop. */
+    /**
+     * Saved reference of the `GameNote` that could be triggered. Will be frequently updated by the game loop.
+     * 
+     * Ordered by `GameNote.time_in_seconds`.
+     */
     private static game_notes_can_be_triggered: GameNote[] = []
 
     private static _note_falling_speed = 140
@@ -266,13 +270,17 @@ export class GameManager
         if (index_of_first_on_screen_note >= 0) // There are still notes going to be displayed.
         {
             // Get the note triggerable.
-            const index_of_last_triggerable = game_notes.findIndex(
+            const index_try_find_last_triggerable = game_notes.findIndex(
                 note => note.time_in_seconds - current_time > this.note_early_trigger_limit
-            ) - 1
+            )
+            const index_of_last_triggerable = index_try_find_last_triggerable == -1
+                ? game_notes.length // Searched until the end of the notes.
+                : index_try_find_last_triggerable
             // Save it, pass the reference.
-            for (let i = index_of_first_on_screen_note; i < index_of_last_triggerable + 1; i++)
+            this.game_notes_can_be_triggered = []
+            for (let i = index_of_first_on_screen_note; i < index_of_last_triggerable; i++)
             {
-                this.game_notes_can_be_triggered[i] = new Proxy(game_notes[i], {})
+                this.game_notes_can_be_triggered.push(new Proxy(game_notes[i], {}))
             }
 
             // Draw and handle missed note.
@@ -281,6 +289,7 @@ export class GameManager
         else // No notes should be displayed.
         {
             GraphicManager.eraseDrawNotesArea()
+            this.game_notes_can_be_triggered = []
 
             // Check if also need to cancel the game loop, and show the result.
             if (current_time > this.bgm_length)
@@ -318,7 +327,7 @@ export class GameManager
             // That means this note is missed. Note that `note_miss_time_limit` is positive.
             if (time_diff < (-this.note_miss_time_limit))
             {
-                this.triggerGameNoteMiss(i)
+                this.triggerGameNoteMiss(new Proxy(note, {}))
             }
             const distance = time_diff >= 0
                 ? time_diff * this.note_falling_speed // Note approaching to be played.
@@ -380,6 +389,7 @@ export class GameManager
     {
         const keyboard_layout = this.getPianoKeyMapping()!
         const key = event.key
+        const current_time = getTransport().seconds
         switch (this.piano_mode)
         {
             case PianoMode.simulator: // Do not need to check whether correct
@@ -394,40 +404,33 @@ export class GameManager
             case PianoMode.in_game:
                 if (keyboard_layout[key] == undefined) { return }
 
-                let target_note: GameNote | null = null
-
                 const [start, end] = pickOctaveRangedCtoB(this.pianokey_start, this.pianokey_end)
                 const shift = (x: number) => shiftMIDINumToRange(x, start, end)
-                for (const node of this.game_notes_can_be_triggered)
+                for (const note of this.game_notes_can_be_triggered)
                 {
                     // const a = shift(node.midi_num)
                     // const b = convertKeyNameToNoteNum(keyboard_layout[key])
-                    if (shift(node.midi_num) == convertKeyNameToNoteNum(keyboard_layout[key]))
+                    if (shift(note.midi_num) == convertKeyNameToNoteNum(keyboard_layout[key]))
                     {
-                        if (target_note == null || node.time_in_seconds > target_note.time_in_seconds)
+                        this.triggerAttack(keyboard_layout[key] ?? "")
+                        if (note.fully_play_time == undefined) // tap to trigger
                         {
-                            target_note = node
+                            this.triggerGameNoteTap(note, current_time)
                         }
-                    }
-                }
-                if (target_note != null)
-                {
-                    this.triggerAttack(keyboard_layout[key] ?? "")
-                    if (target_note.fully_play_time == undefined) // tap to trigger
-                    {
-                        this.triggerGameNoteTap(target_note)
-                    }
-                    else // Hold to trigger
-                    {
-                        this.triggerGameNoteHoldStart(target_note)
-                        this.hold_note_that_is_triggering.add({ key: key, note: target_note })
+                        else // Hold to trigger
+                        {
+                            this.triggerGameNoteHoldStart(note, current_time)
+                            this.hold_note_that_is_triggering.add({ key, note })
+                        }
+
+                        break
                     }
                 }
 
                 GraphicManager.preparePianoKeyboardOffscreen({
                     mode: "keypress", key_num: midi_note_to_name.indexOf(keyboard_layout[key] as PossibleNoteName)
                 })
-                GraphicManager.draw()
+                GraphicManager.drawKeyboardOnly()
                 return this
         }
     }
@@ -436,6 +439,7 @@ export class GameManager
     {
         const keyboard_layout = this.getPianoKeyMapping()!
         const key = event.key
+        const current_time = getTransport().seconds
         switch (this.piano_mode)
         {
             case PianoMode.simulator:
@@ -455,7 +459,7 @@ export class GameManager
                     if (key == hold_note.key)
                     {
                         this.hold_note_that_is_triggering.delete(hold_note)
-                        this.triggerGameNoteHoldFinish(hold_note.note)
+                        this.triggerGameNoteHoldFinish(hold_note.note, current_time)
                         break
                     }
                 }
@@ -463,9 +467,8 @@ export class GameManager
                 GraphicManager.preparePianoKeyboardOffscreen({
                     mode: "keyrelease", key_num: midi_note_to_name.indexOf(keyboard_layout[key] as PossibleNoteName)
                 })
-                GraphicManager.draw()
+                GraphicManager.drawKeyboardOnly()
                 return this.triggerRelease(keyboard_layout[key] ?? "", all_key_released)
-
         }
     }
 
@@ -492,6 +495,7 @@ export class GameManager
      * For in game note that only requires a tap.
      * 
      * This will be called only if a note is correctly triggered by input.
+     * 
      * The note be passed should be a **reference** created by the `Proxy`.
      */
     private static triggerGameNoteTap(note: GameNote, current_time: number = getTransport().seconds)
@@ -505,6 +509,7 @@ export class GameManager
      * For in game note that requires long touch, this start the holding. 
      * 
      * This will be called only if a note is correctly triggered by input.
+     * 
      * The note be passed should be a **reference** created by the `Proxy`.
      */
     private static triggerGameNoteHoldStart(note: GameNote, current_time: number = getTransport().seconds)
@@ -512,9 +517,11 @@ export class GameManager
         note.press_starts_at = current_time
     }
 
-    /** For in game note that requires long touch, this finish the holding.
+    /**
+     * For in game note that requires long touch, this finish the holding.
      * 
      * This will be called only if a note is correctly triggered by input.
+     * 
      * The note be passed should be a **reference** created by the `Proxy`.
      */
     private static triggerGameNoteHoldFinish(note: GameNote, current_time: number = getTransport().seconds)
@@ -524,14 +531,16 @@ export class GameManager
         note.rating = this.rateGameNote(note)
     }
 
-    private static triggerGameNoteMiss(note_index: number)
+    /**
+     * For in game note that is already missed.
+     * 
+     * The note be passed should be a **reference** created by the `Proxy`.
+     */
+    private static triggerGameNoteMiss(note: GameNote)
     {
-        const result: Partial<GameNote_SpecialMember_WithDefault> = {
-            is_triggered: true,
-            press_starts_at: -1
-        }
-
-        this.game_notes![note_index] = { ...this.game_notes![note_index], ...result }
+        note.is_triggered = true
+        note.press_starts_at = -1
+        note.rating = NoteRating.missed
     }
 
     private static rateGameNote(note: GameNote): NoteRating
@@ -580,7 +589,7 @@ export class GameManager
     /** Get the mapping of key */
     public static getPianoKeyMapping(order: "key_to_note" | "note_to_key" = "key_to_note")
     {
-        const mapping = this.pianokey_mapping_setting.get(this.piano_mode)
+        const mapping = this.pianokey_mapping_setting.get(this.piano_mode)!
         if (mapping == undefined) { return {} }
 
         if (order == "key_to_note") { return mapping }
@@ -589,6 +598,12 @@ export class GameManager
             return Object.fromEntries(Object.entries(mapping).map(([k, v]) => [v, k]))
         }
         else { throw TypeError(`Unknown param order ("${order}") for GameManager.getKeyMapping.`) }
+    }
+
+    /** Get mapping of the functional key */
+    public static getFunctionalKeyMapping()
+    {
+
     }
 
     /**
@@ -644,12 +659,6 @@ export class GameManager
                     this.bgm_length = SoundManager.getBgmLength()
                 }
             )
-    }
-
-    /** Get mapping of the functional key */
-    public static getFunctionalKeyMapping()
-    {
-
     }
 }
 
