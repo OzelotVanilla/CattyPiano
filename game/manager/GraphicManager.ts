@@ -52,7 +52,20 @@ export class GraphicManager
     public static draw()
     {
         this.drawKeyboardOnly()
+        this.drawExceptKeyboard()
+
+        return this
+    }
+
+    private static rating_text_queue: Set<prepareFadingText_Param> = new Set()
+
+    /** Will be called by the game loop. */
+    public static drawExceptKeyboard()
+    {
         this.drawNotesAreaOnly()
+
+        Array.from(this.rating_text_queue).sort((a, b) => a.alpha - b.alpha)
+            .forEach(this.drawFadingText.bind(GraphicManager))
 
         return this
     }
@@ -391,7 +404,7 @@ export class GraphicManager
         ) + this.keyboard_config.white_key_width * key_offset;
     }
 
-    public static drawRateTextAboveKey(note: GameNote, rate_text_style: RateTextStyle = "common")
+    public static prepareRateTextAboveKey(note: GameNote, rate_text_style: RateTextStyle = "common")
     {
         const style = rate_text_styles[rate_text_style]
         let colour: CanvasFillColour
@@ -415,46 +428,48 @@ export class GraphicManager
             case NoteRating.not_rated_yet:
                 throw RangeError()
         }
-        this.drawFadingText({
-            midi_num: note.midi_num,
-            text: note.rating.toUpperCase(),
-            alpha: 1,
-            font: style.font,
-            colour: colour,
-            x: this.getMiddlePointXOffsetOfKey(note.midi_num),
-            y: this.game_canvas.height - this.piano_keyboard_height - 50,
-            fade_out_in_ms: style.disappear_time * 1000
-        })
+
+        this.rating_text_queue.add(
+            {
+                midi_num: note.midi_num,
+                text: note.rating.toUpperCase(),
+                alpha: 1,
+                font: style.font,
+                colour: colour,
+                x: this.getMiddlePointXOffsetOfKey(note.midi_num),
+                y: this.game_canvas.height - this.piano_keyboard_height - 50,
+                fade_out_in_frame: style.disappear_frame
+            }
+        )
+
+        // Create new offscreen canvas for the rating text.
     }
 
-    private static drawFadingText({
-        midi_num, text, alpha, font, colour, x, y, fade_out_in_ms
-    }: drawFadingText_Param)
+    private static drawFadingText(param: prepareFadingText_Param)
     {
-        const draw = this.game_canvas.getContext("2d")!
-        const [prev_font, prev_fill_style, prev_text_align, prev_alpha] = [
-            draw.font, draw.fillStyle, draw.textAlign, draw.globalAlpha
-        ]
-        // Set config to draw.
-        draw.font = font
-        draw.fillStyle = colour
-        draw.textAlign = "center"
-        draw.globalAlpha = alpha < 0 ? 0 : alpha
-        // Draw the text.
-        draw.fillText(text, x, y)
-        // Restore.
-        draw.font = prev_font
-        draw.fillStyle = prev_fill_style
-        draw.textAlign = prev_text_align
-        draw.globalAlpha = prev_alpha
+        let offscreen_canvas = new OffscreenCanvas(
+            window.innerWidth, window.innerHeight * (1 - this.keyboard_config.piano_keyboard_height_ratio)
+        )
 
-        const alpha_new = alpha - (1 / fade_out_in_ms)
-        if (alpha_new > 0)
+        const draw = offscreen_canvas.getContext("2d")!
+        // Set config to draw.
+        draw.font = param.font
+        draw.fillStyle = param.colour
+        draw.textAlign = "center"
+        draw.globalAlpha = param.alpha
+        // Draw the text.
+        draw.fillText(param.text, param.x, param.y)
+
+        this.game_canvas.getContext("2d")!.drawImage(offscreen_canvas, 0, 0)
+
+        let new_alpha = param.alpha - (1 / param.fade_out_in_frame)
+        if (new_alpha > 0)
         {
-            setTimeout(
-                () => GraphicManager.drawFadingText({ midi_num, text, font, alpha: alpha_new, colour, x, y, fade_out_in_ms }),
-                1
-            )
+            param.alpha = new_alpha
+        }
+        else
+        {
+            this.rating_text_queue.delete(param)
         }
     }
 }
@@ -483,7 +498,7 @@ export type prepareNotesOffscreen_Param = {
     })[]
 }
 
-type drawFadingText_Param = {
+type prepareFadingText_Param = {
     midi_num: number
     text: string
     alpha: number
@@ -492,6 +507,6 @@ type drawFadingText_Param = {
     /** Center point of text on x-axis. */
     x: number
     y: number
-    /** The time (in milliseconds) for a text to totally fadeout. */
-    fade_out_in_ms: number
+    /** The time (in frames) for a text to totally fadeout. */
+    fade_out_in_frame: number
 }

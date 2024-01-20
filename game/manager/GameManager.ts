@@ -345,7 +345,7 @@ export class GameManager
         }
 
         // Put notes to the screen and draw the notes
-        GraphicManager.prepareNotesOffscreen({ notes: notes_to_display }).drawNotesAreaOnly()
+        GraphicManager.prepareNotesOffscreen({ notes: notes_to_display }).drawExceptKeyboard()
     }
 
     /** The highest point is 1, lowest 0. */
@@ -390,51 +390,43 @@ export class GameManager
         const keyboard_layout = this.getPianoKeyMapping()!
         const key = event.key
         const current_time = getTransport().seconds
-        switch (this.piano_mode)
+
+        if (keyboard_layout[key] == undefined) { return }
+
+        if (this.piano_mode == PianoMode.in_game)
         {
-            case PianoMode.simulator: // Do not need to check whether correct
-                if (keyboard_layout[key] == undefined) { return }
-
-                GraphicManager.preparePianoKeyboardOffscreen({
-                    mode: "keypress", key_num: midi_note_to_name.indexOf(keyboard_layout[key] as PossibleNoteName)
-                })
-                GraphicManager.draw()
-                return this.triggerAttack(keyboard_layout[key] ?? "")
-
-            case PianoMode.in_game:
-                if (keyboard_layout[key] == undefined) { return }
-
-                const [start, end] = pickOctaveRangedCtoB(this.pianokey_start, this.pianokey_end)
-                const shift = (x: number) => shiftMIDINumToRange(x, start, end)
-                const shiftNote = (n: GameNote) => shiftNoteToRange(n, start, end)
-                for (const note of this.game_notes_can_be_triggered)
+            const [start, end] = pickOctaveRangedCtoB(this.pianokey_start, this.pianokey_end)
+            const shift = (x: number) => shiftMIDINumToRange(x, start, end)
+            const shiftNote = (n: GameNote) => shiftNoteToRange(n, start, end)
+            for (const note of this.game_notes_can_be_triggered)
+            {
+                // const a = shift(node.midi_num)
+                // const b = convertKeyNameToNoteNum(keyboard_layout[key])
+                if (shift(note.midi_num) == convertKeyNameToNoteNum(keyboard_layout[key]))
                 {
-                    // const a = shift(node.midi_num)
-                    // const b = convertKeyNameToNoteNum(keyboard_layout[key])
-                    if (shift(note.midi_num) == convertKeyNameToNoteNum(keyboard_layout[key]))
+                    this.triggerAttack(keyboard_layout[key] ?? "")
+                    if (note.fully_play_time == undefined) // tap to trigger
                     {
-                        this.triggerAttack(keyboard_layout[key] ?? "")
-                        if (note.fully_play_time == undefined) // tap to trigger
-                        {
-                            this.triggerGameNoteTap(note, current_time)
-                            GraphicManager.drawRateTextAboveKey(shiftNote(note))
-                        }
-                        else // Hold to trigger
-                        {
-                            this.triggerGameNoteHoldStart(note, current_time)
-                            this.hold_note_that_is_triggering.add({ key, note })
-                        }
-
-                        break
+                        this.triggerGameNoteTap(note, current_time)
+                        GraphicManager.prepareRateTextAboveKey(shiftNote(note))
                     }
-                }
+                    else // Hold to trigger
+                    {
+                        this.triggerGameNoteHoldStart(note, current_time)
+                        this.hold_note_that_is_triggering.add({ key, note })
+                    }
 
-                GraphicManager.preparePianoKeyboardOffscreen({
-                    mode: "keypress", key_num: midi_note_to_name.indexOf(keyboard_layout[key] as PossibleNoteName)
-                })
-                GraphicManager.drawKeyboardOnly()
-                return this
+                    break
+                }
+            }
         }
+
+        GraphicManager.preparePianoKeyboardOffscreen({
+            mode: "keypress", key_num: midi_note_to_name.indexOf(keyboard_layout[key] as PossibleNoteName)
+        })
+        GraphicManager.drawKeyboardOnly()
+        return this
+
     }
 
     public static getKeyUp(event: KeyboardEvent, all_key_released: boolean = false)
@@ -442,40 +434,30 @@ export class GameManager
         const keyboard_layout = this.getPianoKeyMapping()!
         const key = event.key
         const current_time = getTransport().seconds
-        switch (this.piano_mode)
+        if (keyboard_layout[key] == undefined) { return }
+
+        if (this.piano_mode == PianoMode.in_game)
         {
-            case PianoMode.simulator:
-                if (keyboard_layout[key] == undefined) { return }
-
-                GraphicManager.preparePianoKeyboardOffscreen({
-                    mode: "keyrelease", key_num: midi_note_to_name.indexOf(keyboard_layout[key] as PossibleNoteName)
-                })
-                GraphicManager.draw()
-                return this.triggerRelease(keyboard_layout[key] ?? "", all_key_released)
-
-            case PianoMode.in_game:
-                if (keyboard_layout[key] == undefined) { return }
-
-                const [start, end] = pickOctaveRangedCtoB(this.pianokey_start, this.pianokey_end)
-                const shiftNote = (n: GameNote) => shiftNoteToRange(n, start, end)
-                for (const hold_note of this.hold_note_that_is_triggering)
+            const [start, end] = pickOctaveRangedCtoB(this.pianokey_start, this.pianokey_end)
+            const shiftNote = (n: GameNote) => shiftNoteToRange(n, start, end)
+            for (const hold_note of this.hold_note_that_is_triggering)
+            {
+                if (key == hold_note.key)
                 {
-                    if (key == hold_note.key)
-                    {
-                        const { note } = hold_note
-                        this.hold_note_that_is_triggering.delete(hold_note)
-                        this.triggerGameNoteHoldFinish(note, current_time)
-                        GraphicManager.drawRateTextAboveKey(shiftNote(note))
-                        break
-                    }
+                    const { note } = hold_note
+                    this.hold_note_that_is_triggering.delete(hold_note)
+                    this.triggerGameNoteHoldFinish(note, current_time)
+                    GraphicManager.prepareRateTextAboveKey(shiftNote(note))
+                    break
                 }
-
-                GraphicManager.preparePianoKeyboardOffscreen({
-                    mode: "keyrelease", key_num: midi_note_to_name.indexOf(keyboard_layout[key] as PossibleNoteName)
-                })
-                GraphicManager.drawKeyboardOnly()
-                return this.triggerRelease(keyboard_layout[key] ?? "", all_key_released)
+            }
         }
+
+        GraphicManager.preparePianoKeyboardOffscreen({
+            mode: "keyrelease", key_num: midi_note_to_name.indexOf(keyboard_layout[key] as PossibleNoteName)
+        })
+        GraphicManager.drawKeyboardOnly()
+        return this.triggerRelease(keyboard_layout[key] ?? "", all_key_released)
     }
 
     /** For a normal piano to get key being pressed. */
@@ -547,6 +529,10 @@ export class GameManager
         note.is_triggered = true
         note.press_starts_at = -1
         note.rating = NoteRating.missed
+
+        const [start, end] = pickOctaveRangedCtoB(this.pianokey_start, this.pianokey_end)
+        const shiftNote = (n: GameNote) => shiftNoteToRange(n, start, end)
+        GraphicManager.prepareRateTextAboveKey(shiftNote(note))
     }
 
     private static rateGameNote(note: GameNote): NoteRating

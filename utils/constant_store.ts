@@ -68,7 +68,7 @@ export const rate_text_styles: { [style_name in RateTextStyle]: RateTextStyleCon
     "common": {
         missed_colour: "#83959f", bad_colour: "#005243",
         good_colour: "#f5b1aa", great_colour: "#f69e22", perfect_colour: "#ffd900",
-        disappear_time: 0.5, font: `40px "Consolas", serif`
+        disappear_frame: 45, font: `40px "Consolas", serif`
     }
 }
 
@@ -81,8 +81,8 @@ type GetRatingTextColour<NoteRating> = {
 export type RateTextStyleConfig =
     GetRatingTextColour<Omit<typeof NoteRating, "not_rated_yet">>
     & {
-        /** Time for the text to disappear (in seconds). */
-        disappear_time: number
+        /** Time for the text to disappear (in frames). */
+        disappear_frame: number
         /** Text font (CSS string of font). */
         font: CanvasTextFont
     }
