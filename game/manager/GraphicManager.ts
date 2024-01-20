@@ -1,7 +1,7 @@
-import { midi_note_to_name, NoteStyle, note_styles } from "@/utils/constant_store";
+import { midi_note_to_name, NoteStyle, note_styles, RateTextStyle, CanvasTextFont, CanvasFillColour, rate_text_styles } from "@/utils/constant_store";
 import { isClientEnvironment } from "@/utils/env";
 import { isSharpKey } from "@/utils/music";
-import { GameManager, GameNote } from "./GameManager";
+import { GameManager, GameNote, NoteRating } from "./GameManager";
 
 export class GraphicManager
 {
@@ -360,16 +360,8 @@ export class GraphicManager
             else
             {
                 const midi_num = note_and_distance.note.midi_num
-                const key_offset = isSharpKey(midi_num)
-                    ? this.keyboard_config.black_keys_position.indexOf(midi_num)
-                    : this.keyboard_config.white_keys_position.indexOf(midi_num)
-
                 /** The center of the note rectangle that is going to be drawn. */
-                const x_axis_offset =
-                    (isSharpKey(midi_num)
-                        ? 0
-                        : this.keyboard_config.white_key_width / 2)
-                    + this.keyboard_config.white_key_width * key_offset;
+                const x_axis_offset = this.getMiddlePointXOffsetOfKey(midi_num)
 
                 // Draw the note.
                 draw.fillRect(
@@ -383,6 +375,87 @@ export class GraphicManager
         }
 
         return this
+    }
+
+    public static getMiddlePointXOffsetOfKey(midi_num: number)
+    {
+        const key_offset = isSharpKey(midi_num)
+            ? this.keyboard_config.black_keys_position.indexOf(midi_num)
+            : this.keyboard_config.white_keys_position.indexOf(midi_num)
+
+        if (key_offset < 0) { throw RangeError(`Midi Number ${midi_num} does not exist in the keyboard range.`) }
+
+        return (isSharpKey(midi_num)
+            ? 0
+            : this.keyboard_config.white_key_width / 2
+        ) + this.keyboard_config.white_key_width * key_offset;
+    }
+
+    public static drawRateTextAboveKey(note: GameNote, rate_text_style: RateTextStyle = "common")
+    {
+        const style = rate_text_styles[rate_text_style]
+        let colour: CanvasFillColour
+        switch (note.rating)
+        {
+            case NoteRating.missed:
+                colour = style.missed_colour
+                break
+            case NoteRating.bad:
+                colour = style.bad_colour
+                break
+            case NoteRating.good:
+                colour = style.good_colour
+                break
+            case NoteRating.great:
+                colour = style.great_colour
+                break
+            case NoteRating.perfect:
+                colour = style.perfect_colour
+                break
+            case NoteRating.not_rated_yet:
+                throw RangeError()
+        }
+        this.drawFadingText({
+            midi_num: note.midi_num,
+            text: note.rating.toUpperCase(),
+            alpha: 1,
+            font: style.font,
+            colour: colour,
+            x: this.getMiddlePointXOffsetOfKey(note.midi_num),
+            y: this.game_canvas.height - this.piano_keyboard_height - 50,
+            fade_out_in_ms: style.disappear_time * 1000
+        })
+    }
+
+    private static drawFadingText({
+        midi_num, text, alpha, font, colour, x, y, fade_out_in_ms
+    }: drawFadingText_Param)
+    {
+        const draw = this.game_canvas.getContext("2d")!
+        const [prev_font, prev_fill_style, prev_text_align, prev_alpha] = [
+            draw.font, draw.fillStyle, draw.textAlign, draw.globalAlpha
+        ]
+        // Set config to draw.
+        draw.font = font
+        draw.fillStyle = colour
+        draw.textAlign = "center"
+        draw.globalAlpha = alpha < 0 ? 0 : alpha
+        // Draw the text.
+        draw.fillText(text, x, y)
+        // Restore.
+        draw.font = prev_font
+        draw.fillStyle = prev_fill_style
+        draw.textAlign = prev_text_align
+        draw.globalAlpha = prev_alpha
+
+        const alpha_new = alpha - (1 / fade_out_in_ms)
+        if (alpha_new > 0)
+        {
+            setTimeout(
+                () => GraphicManager.drawFadingText({ midi_num, text, font, alpha: alpha_new, colour, x, y, fade_out_in_ms }),
+                1
+            )
+        }
     }
 }
 
@@ -408,4 +481,17 @@ export type prepareNotesOffscreen_Param = {
         /** The distance between the note and the top edge of the piano keyboard. */
         distance: number
     })[]
+}
+
+type drawFadingText_Param = {
+    midi_num: number
+    text: string
+    alpha: number
+    font: CanvasTextFont
+    colour: CanvasFillColour
+    /** Center point of text on x-axis. */
+    x: number
+    y: number
+    /** The time (in milliseconds) for a text to totally fadeout. */
+    fade_out_in_ms: number
 }

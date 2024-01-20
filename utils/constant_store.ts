@@ -1,3 +1,5 @@
+import { NoteRating } from "@/game/manager/GameManager";
+
 export const default_piano_keyboard_layout = {
     "a": "A3",
     "w": "A#3",
@@ -43,6 +45,9 @@ type GetReadonlyArrayInnerType<ReadonlyArray extends readonly any[]> = ReadonlyA
 
 export type PossibleNoteName = GetReadonlyArrayInnerType<typeof midi_note_to_name>;
 
+export type CanvasFillColour = CanvasFillStrokeStyles["fillStyle"]
+export type CanvasTextFont = CanvasTextDrawingStyles["font"]
+
 export const note_styles: { [style_name in NoteStyle]: NoteStyleConfig } = {
     "common": {
         width: 50,
@@ -52,9 +57,32 @@ export const note_styles: { [style_name in NoteStyle]: NoteStyleConfig } = {
 
 export type NoteStyle = "common"
 
-export type NoteStyleConfig = {
+export type NoteStyleConfig = Readonly<{
     /** Width in px. */
     width: number
-    /** Background of the note. */
-    background_colour: CanvasFillStrokeStyles["fillStyle"]
+    /** Background of the note (CSS string of colour). */
+    background_colour: CanvasFillColour
+}>
+
+export const rate_text_styles: { [style_name in RateTextStyle]: RateTextStyleConfig } = {
+    "common": {
+        missed_colour: "#83959f", bad_colour: "#005243",
+        good_colour: "#f5b1aa", great_colour: "#f69e22", perfect_colour: "#ffd900",
+        disappear_time: 0.5, font: `40px "Consolas", serif`
+    }
 }
+
+export type RateTextStyle = "common"
+
+type GetRatingTextColour<NoteRating> = {
+    [rating in keyof NoteRating as `${string & rating}_colour`]: CanvasFillColour
+}
+
+export type RateTextStyleConfig =
+    GetRatingTextColour<Omit<typeof NoteRating, "not_rated_yet">>
+    & {
+        /** Time for the text to disappear (in seconds). */
+        disappear_time: number
+        /** Text font (CSS string of font). */
+        font: CanvasTextFont
+    }

@@ -37,7 +37,7 @@ export enum GameStatus
     finished = "finished"
 }
 
-enum NoteRating
+export enum NoteRating
 {
     /** Waiting for rating. */
     not_rated_yet = "not_rated_yet",
@@ -406,6 +406,7 @@ export class GameManager
 
                 const [start, end] = pickOctaveRangedCtoB(this.pianokey_start, this.pianokey_end)
                 const shift = (x: number) => shiftMIDINumToRange(x, start, end)
+                const shiftNote = (n: GameNote) => shiftNoteToRange(n, start, end)
                 for (const note of this.game_notes_can_be_triggered)
                 {
                     // const a = shift(node.midi_num)
@@ -416,6 +417,7 @@ export class GameManager
                         if (note.fully_play_time == undefined) // tap to trigger
                         {
                             this.triggerGameNoteTap(note, current_time)
+                            GraphicManager.drawRateTextAboveKey(shiftNote(note))
                         }
                         else // Hold to trigger
                         {
@@ -454,12 +456,16 @@ export class GameManager
             case PianoMode.in_game:
                 if (keyboard_layout[key] == undefined) { return }
 
+                const [start, end] = pickOctaveRangedCtoB(this.pianokey_start, this.pianokey_end)
+                const shiftNote = (n: GameNote) => shiftNoteToRange(n, start, end)
                 for (const hold_note of this.hold_note_that_is_triggering)
                 {
                     if (key == hold_note.key)
                     {
+                        const { note } = hold_note
                         this.hold_note_that_is_triggering.delete(hold_note)
-                        this.triggerGameNoteHoldFinish(hold_note.note, current_time)
+                        this.triggerGameNoteHoldFinish(note, current_time)
+                        GraphicManager.drawRateTextAboveKey(shiftNote(note))
                         break
                     }
                 }
