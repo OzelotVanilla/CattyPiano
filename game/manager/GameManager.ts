@@ -53,10 +53,6 @@ export enum NoteRating
     perfect = "perfect"
 }
 
-type PlayingNoteInfo = {
-    triggered_at: number
-}
-
 export class GameManager
 {
     public static piano_mode: PianoMode = PianoMode.simulator
@@ -475,7 +471,7 @@ export class GameManager
     /** For a normal piano to get key being pressed. */
     private static triggerAttack(note: string)
     {
-        console.log(`triggerAttack "${note}"`)
+        // console.log(`triggerAttack "${note}"`)
         if (note.trim().length == 0) { return this; }
         SoundManager.startNote(note)
         return this;
@@ -484,7 +480,7 @@ export class GameManager
     /** For a normal piano to release a pressed key. */
     private static triggerRelease(note: string, all_key_released: boolean = false)
     {
-        console.log(`triggerRelease "${note}"`)
+        // console.log(`triggerRelease "${note}"`)
         if (note.trim().length == 0) { return this; }
         SoundManager.releaseNote(note)
         if (all_key_released) { SoundManager.releaseAllNote() }

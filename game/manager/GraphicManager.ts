@@ -64,7 +64,8 @@ export class GraphicManager
     {
         this.drawNotesAreaOnly()
 
-        Array.from(this.rating_text_queue).sort((a, b) => a.alpha - b.alpha)
+        Array.from(this.rating_text_queue)
+            .sort((a, b) => a.alpha - b.alpha)
             .forEach(this.drawFadingText.bind(GraphicManager))
 
         return this
