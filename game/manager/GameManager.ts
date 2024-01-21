@@ -422,6 +422,7 @@ export class GameManager
 
         if (keyboard_layout[key] == undefined) { return }
 
+        const triggerNoteSoundAttack = () => this.triggerAttack(keyboard_layout[key] ?? "")
         if (this.piano_mode == PianoMode.in_game)
         {
             const [start, end] = pickOctaveRangedCtoB(this.pianokey_start, this.pianokey_end)
@@ -433,7 +434,7 @@ export class GameManager
                 // const b = convertKeyNameToNoteNum(keyboard_layout[key])
                 if (shift(note.midi_num) == convertKeyNameToNoteNum(keyboard_layout[key]))
                 {
-                    this.triggerAttack(keyboard_layout[key] ?? "")
+                    triggerNoteSoundAttack()
                     if (note.fully_play_time == undefined) // tap to trigger
                     {
                         this.triggerGameNoteTap(note, current_time)
@@ -449,16 +450,19 @@ export class GameManager
                 }
             }
         }
+        else if (this.piano_mode == PianoMode.simulator)
+        {
+            triggerNoteSoundAttack()
+        }
 
         GraphicManager.preparePianoKeyboardOffscreen({
             mode: "keypress", key_num: midi_note_to_name.indexOf(keyboard_layout[key] as PossibleNoteName)
         })
         GraphicManager.drawKeyboardOnly()
         return this
-
     }
 
-    public static getKeyUp(event: KeyboardEvent, all_key_released: boolean = false)
+    public static getKeyUp(event: KeyboardEvent, should_release_all: boolean = false)
     {
         const keyboard_layout = this.getPianoKeyMapping()!
         const key = event.key
@@ -486,7 +490,7 @@ export class GameManager
             mode: "keyrelease", key_num: midi_note_to_name.indexOf(keyboard_layout[key] as PossibleNoteName)
         })
         GraphicManager.drawKeyboardOnly()
-        return this.triggerRelease(keyboard_layout[key] ?? "", all_key_released)
+        return this.triggerRelease(keyboard_layout[key] ?? "", should_release_all)
     }
 
     /** For a normal piano to get key being pressed. */
@@ -499,12 +503,12 @@ export class GameManager
     }
 
     /** For a normal piano to release a pressed key. */
-    private static triggerRelease(note: string, all_key_released: boolean = false)
+    private static triggerRelease(note: string, should_release_all: boolean = false)
     {
         // console.log(`triggerRelease "${note}"`)
         if (note.trim().length == 0) { return this; }
         SoundManager.releaseNote(note)
-        if (all_key_released) { SoundManager.releaseAllNote() }
+        if (should_release_all) { SoundManager.releaseAllNote() }
         return this;
     }
 
