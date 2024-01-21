@@ -54,16 +54,16 @@ export default function PianoPage()
         InputManager; // Accept raw input, and trigger corresponding action.
 
         // Should bind `this` because this is JavaScript.
-        document.addEventListener("keydown", handleKeydown, true)
-        document.addEventListener("keyup", handleKeyup, true)
+        window.addEventListener("keydown", handleKeydown)
+        window.addEventListener("keyup", handleKeyup)
         window.addEventListener("resize", handleResize)
         GraphicManager.adjustGameCanvasSize()
 
         // Destructor
         return () =>
         {
-            document.removeEventListener("keydown", handleKeydown)
-            document.removeEventListener("keyup", handleKeyup)
+            window.removeEventListener("keydown", handleKeydown)
+            window.removeEventListener("keyup", handleKeyup)
             window.removeEventListener("resize", handleResize)
         }
     }, [])
