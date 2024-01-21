@@ -31,6 +31,7 @@ const default_piano_setting: PianoSetting = {
 
 export default function PianoPage()
 {
+    // Should bind `this` because this is JavaScript.
     const handleKeydown = useCallback(InputManager.processKeyDownEvent.bind(InputManager), [])
     const handleKeyup = useCallback(InputManager.processKeyUpEvent.bind(InputManager), [])
     const handleResize = useCallback(GraphicManager.handleWindowResize.bind(GraphicManager), [])
@@ -65,17 +66,21 @@ export default function PianoPage()
     // On mount. Any key stroke will be passed to the Input Manager.
     useEffect(() => 
     {
-        // Load the static code inside
+        // Load the static code inside.
         GameManager;  // Controls game mode or some other high level things like the key hit.
         SoundManager; // Play the game sound.
         InputManager; // Accept raw input, and trigger corresponding action.
 
-        // Should bind `this` because this is JavaScript.
+        // Event listener that only works at `piano` page.
         window.addEventListener("keydown", handleKeydown)
         window.addEventListener("keyup", handleKeyup)
         window.addEventListener("resize", handleResize)
         window.addEventListener("game_end", handleGameEnd)
-        GraphicManager.adjustGameCanvasSize()
+        GameManager.init()
+
+        // Set the page state to default.
+        setSongPlaying(null)
+        if (router.query.goto_game == "true") { setPianoMode(PianoMode.in_game); setSongSelectOpen(true) }
 
         // Destructor
         return () =>
@@ -84,6 +89,7 @@ export default function PianoPage()
             window.removeEventListener("keyup", handleKeyup)
             window.removeEventListener("resize", handleResize)
             window.removeEventListener("game_end", handleGameEnd)
+            GameManager.unmount()
         }
     }, [])
 
@@ -92,7 +98,7 @@ export default function PianoPage()
     {
         GameManager.setNewPianoKeyRange(keyboard_start, keyboard_end)
         GraphicManager.preparePianoKeyboardOffscreen({ mode: "layout", start_num: keyboard_start, end_num: keyboard_end })
-        GraphicManager.draw()
+        GraphicManager.drawKeyboardOnly()
     }, [keyboard_start, keyboard_end])
 
     const screen_left_part_width_ratio = left_screen_ratio.get(piano_setting.screen_mode) ?? 0

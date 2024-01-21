@@ -24,7 +24,7 @@ export default function ResultPage()
     )
     const [sum_score, total_note_num] = [parseInt(sum_score_in_str), parseInt(total_note_num_in_str)]
 
-    console.log({ rating_count_in_str, rating_count, sum_score, total_note_num })
+    // console.log({ rating_count_in_str, rating_count, sum_score, total_note_num })
 
     return (<div id="result_panel">
         <Title className="Title">{text.result.title_text}</Title>
@@ -36,7 +36,7 @@ export default function ResultPage()
                 <Text>{text.result.completeness_text} {(sum_score / total_note_num * 100).toFixed(2)}%</Text>
             </Space>
         </Space>
-        <Link href={"/piano"}><Button id="button_play" type="primary">
+        <Link href={"/piano?goto_game=true"} as={"/piano"}><Button id="button_play" type="primary">
             {text.result.button_text_play_another}
         </Button></Link>
     </div>)
@@ -49,7 +49,7 @@ function NoResultAvailablePage()
     return (<div id="result_panel" className="NoResultPanel">
         <Title>{text.result.no_result_yet}</Title>
         <Text>{text.result.hint_go_to_game}</Text>
-        <Link href={"/piano"}><Button id="button_play" type="primary">
+        <Link href={"/piano?goto_game=true"} as={"/piano"}><Button id="button_play" type="primary">
             {text.result.button_text_play}
         </Button></Link>
     </div>)

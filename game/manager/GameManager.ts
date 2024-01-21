@@ -151,6 +151,25 @@ export class GameManager
 
     public static get game_time() { return SoundManager.getBgmPlayerTime() }
 
+    /** When the page is at the piano page, this function is called to do the initialisation. */
+    public static init()
+    {
+        // console.log("GameManager init")
+        this.game_status = GameStatus.not_start
+        this.game_notes = null
+        getTransport().stop() // Set transport time to 0.
+        GraphicManager.init()
+        SoundManager.init()
+    }
+
+    /** When the page is unmounted, this function is called to unmount. */
+    public static unmount()
+    {
+        // console.log("GameManager unmount")
+        GraphicManager.unmount()
+        SoundManager.unmount()
+    }
+
     /** 
      * Start the piano's game loop, and do initialisation work.
      * 
@@ -282,9 +301,12 @@ export class GameManager
             // Draw and handle missed note.
             this.handleNoteInsideScreen(current_time, index_of_first_on_screen_note)
         }
+        else if (!GraphicManager.isDrawingFinished()) // No more notes, but still the last rating text.
+        {
+            GraphicManager.eraseDrawNotesArea().drawRatingText()
+        }
         else // No notes should be displayed.
         {
-            GraphicManager.eraseDrawNotesArea()
             this.game_notes_can_be_triggered = []
 
             // Check if also need to cancel the game loop, and show the result.
@@ -294,7 +316,6 @@ export class GameManager
                 setTimeout(() =>
                 {
                     this.game_status = GameStatus.finished
-                    SoundManager.releaseAllNote()
                     window.dispatchEvent(
                         new CustomEvent("game_end", {
                             detail: {

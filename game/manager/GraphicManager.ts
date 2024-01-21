@@ -32,6 +32,20 @@ export class GraphicManager
         }
     }
 
+    /** This function is only called after the page is load. */
+    public static init()
+    {
+        this.adjustGameCanvasSize()
+        this.rating_text_queue = new Set()
+        this.key_being_pressed = new Set()
+        this.draw()
+    }
+
+    /** This function is only called after the page is going to be unmounted. */
+    public static unmount()
+    {
+    }
+
     /**
      * Caution: Only call this function after the page load finish.
      */
@@ -57,13 +71,27 @@ export class GraphicManager
         return this
     }
 
+    /**
+     * Check if there is remaining
+     */
+    public static isDrawingFinished()
+    {
+        return this.rating_text_queue.size == 0
+    }
+
     private static rating_text_queue: Set<prepareFadingText_Param> = new Set()
 
     /** Will be called by the game loop. */
     public static drawExceptKeyboard()
     {
         this.drawNotesAreaOnly()
+        this.drawRatingText()
 
+        return this
+    }
+
+    public static drawRatingText()
+    {
         Array.from(this.rating_text_queue)
             .sort((a, b) => a.alpha - b.alpha)
             .forEach(this.drawFadingText.bind(GraphicManager))
