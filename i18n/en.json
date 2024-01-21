@@ -16,6 +16,14 @@
         "song_select_title": "Select a Song to Play",
         "warn_not_selected": "No song has been selected yet."
     },
+    "result": {
+        "title_text": "Game Result",
+        "completeness_text": "Completeness: ",
+        "no_result_yet": "No Result Available Yet !",
+        "hint_go_to_game": "Go to play one game, and you will have a result.",
+        "button_text_play": "Play Now",
+        "button_text_play_another": "Play Another"
+    },
     "lang": {
         "en": "English",
         "zh": "中文 (Chinese)"

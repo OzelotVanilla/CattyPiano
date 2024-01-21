@@ -16,6 +16,14 @@
         "song_select_title": "选择要游玩的曲目",
         "warn_not_selected": "您还没有选择任何歌曲!"
     },
+    "result": {
+        "title_text": "结果发表",
+        "completeness_text": "达成率: ",
+        "no_result_yet": "还没有游戏结果!",
+        "hint_go_to_game": "先去玩一局游戏，就可以获得游戏结果哦",
+        "button_text_play": "现在就去玩",
+        "button_text_play_another": "玩别的曲子"
+    },
     "lang": {
         "en": "English (英语)",
         "zh": "中文"

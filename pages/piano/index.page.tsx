@@ -4,18 +4,20 @@ import "./piano.scss";
 import { Button, FloatButton, List, Modal, Space, Typography, notification } from "antd";
 const { Text, Title } = Typography
 import { Dispatch, SetStateAction, useCallback, useEffect, useRef, useState } from "react";
+import path from "path";
+
 import { SoundManager } from "@/game/manager/SoundManager";
 import { InputManager } from "@/game/manager/InputManager";
 import { GameManager, PianoMode } from "@/game/manager/GameManager";
 import { GraphicManager } from "@/game/manager/GraphicManager";
 import { ReloadOutlined, SettingOutlined } from "@ant-design/icons";
 import { useI18N } from "@/i18n/i18n";
-import path from "path";
-
-import game_sheet_info from "@/public/game_sheet/info.json"
 import { jsonfyResponse } from "@/utils/common";
 import { isClientEnvironment } from "@/utils/env";
 import { SongJSONData } from "@/game/MusicSheet";
+import { GameEndEvent } from "@/utils/event";
+import game_sheet_info from "@/public/game_sheet/info.json"
+import { useRouter } from "next/router";
 
 enum ScreenMode { normal, curve_screen }
 
@@ -45,6 +47,21 @@ export default function PianoPage()
     let [piano_setting, setPianoSetting] = useState(default_piano_setting)
     let [song_playing, setSongPlaying] = useState<SongData | null>(null)
 
+    const router = useRouter()
+    const handleGameEnd = useCallback(
+        (event: GameEndEvent) =>
+        {
+            const { rating_count, sum_score } = event.detail
+            const total_note_num = [...rating_count.values()].reduce((a, b) => a + b)
+            const rating_count_in_str = `{${[...rating_count.entries()].map(([rating, count]) => `${rating}:${count}`).join(",")}}`
+
+            router.push({
+                pathname: "/result",
+                query: { rating_count_in_str, sum_score, total_note_num } as GameEndResultQuery
+            }, "/result")
+        }, []
+    )
+
     // On mount. Any key stroke will be passed to the Input Manager.
     useEffect(() => 
     {
@@ -57,6 +74,7 @@ export default function PianoPage()
         window.addEventListener("keydown", handleKeydown)
         window.addEventListener("keyup", handleKeyup)
         window.addEventListener("resize", handleResize)
+        window.addEventListener("game_end", handleGameEnd)
         GraphicManager.adjustGameCanvasSize()
 
         // Destructor
@@ -65,6 +83,7 @@ export default function PianoPage()
             window.removeEventListener("keydown", handleKeydown)
             window.removeEventListener("keyup", handleKeyup)
             window.removeEventListener("resize", handleResize)
+            window.removeEventListener("game_end", handleGameEnd)
         }
     }, [])
 
@@ -95,6 +114,12 @@ export default function PianoPage()
             is_setting_open={is_setting_open} setSettingOpen={setSettingOpen} />
         <FloatButton className="SettingButton" icon={<SettingOutlined />} onClick={_ => setSettingOpen(true)} />
     </div>)
+}
+
+export type GameEndResultQuery = {
+    rating_count_in_str: string
+    sum_score: number
+    total_note_num: number
 }
 
 function SelectSimOrGameMode({

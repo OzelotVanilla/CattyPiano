@@ -1,0 +1,34 @@
+@import "../global.scss";
+
+#result_panel
+{
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    .Title
+    {
+        margin-bottom: 2dvh;
+    }
+
+    .DataPanel
+    {
+        margin: 2dvh auto;
+    }
+
+    &.NoResultPanel
+    {
+        #button_play
+        {
+            margin-top: 2vh;
+        }
+    }
+
+    > *:last-child
+    {
+        margin-bottom: 15dvh;
+    }
+}

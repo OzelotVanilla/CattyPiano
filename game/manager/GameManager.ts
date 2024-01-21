@@ -294,7 +294,19 @@ export class GameManager
             // Check if also need to cancel the game loop, and show the result.
             if (current_time > this.bgm_length)
             {
-                this.calculateGameResult()
+                // End game after 2 seconds.
+                setTimeout(() =>
+                {
+                    this.game_status = GameStatus.finished
+                    SoundManager.releaseAllNote()
+                    window.dispatchEvent(
+                        new CustomEvent("game_end", {
+                            detail: {
+                                ...this.calculateGameResult()
+                            }
+                        })
+                    )
+                }, 2000)
                 return
             }
         }
@@ -359,7 +371,7 @@ export class GameManager
      * 
      * This should be only called by game loop.
      */
-    private static calculateGameResult()
+    private static calculateGameResult(): GameResult
     {
         let sum_score = 0
         let rating_count = new Map([
@@ -707,3 +719,8 @@ type GameNote_SpecialMember_ShouldCalc = {
 
 /** The note that appears in the game. */
 export type GameNote = SheetNote_Constructor & GameNote_SpecialMember_WithDefault & GameNote_SpecialMember_ShouldCalc
+
+export type GameResult = {
+    sum_score: number
+    rating_count: Map<NoteRating, number>
+}
