@@ -27,9 +27,9 @@ export default function IndexPage()
                 <Link href="/piano/"><Button type="primary" size="large">
                     {text.index.play_button_text}
                 </Button></Link>
-                <Link href="/how_to_play"><Button size="large">
+                {/* <Link href="/how_to_play"><Button size="large">
                     {text.index.help_button_text}
-                </Button></Link>
+                </Button></Link> */}
             </Space>
         </div>
         <div id="HomePage_HoverButtons">

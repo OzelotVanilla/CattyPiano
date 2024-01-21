@@ -328,7 +328,8 @@ function PianoSettingModal({
                 {text.piano.curve_screen_mode}
             </Button>
         </Space>
-        <Space>
+        {/* Debug purpose */}
+        {/* {<Space>
             <Button onClick={GameManager.startPianoGame.bind(GameManager)}>
                 Start
             </Button>
@@ -338,7 +339,7 @@ function PianoSettingModal({
             <Button onClick={GameManager.resumePianoGame.bind(GameManager)}>
                 Resume
             </Button>
-        </Space>
+        </Space>} */}
     </Modal>)
 }
 
