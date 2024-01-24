@@ -117,7 +117,7 @@ export class GraphicManager
         this.draw()
     }
 
-    private static key_being_pressed = new Set<number>()
+    private static key_being_pressed: Set<number> = new Set<number>()
 
     /**
      * Only need to call if the keyboard change.

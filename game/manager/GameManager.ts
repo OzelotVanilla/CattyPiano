@@ -9,6 +9,7 @@ import { convertToSeconds, jsonfyResponse } from "@/utils/common";
 import { SheetNote_Constructor } from "../SheetNote";
 import { Time } from "tone/build/esm/core/type/Units";
 import { convertKeyNameToNoteNum, isSharpKey, pickOctaveRangedCtoB, shiftMIDINumToRange, shiftNoteToRange } from "@/utils/music";
+import { isHoldNote, isTapNote } from "@/utils/game";
 
 export enum PianoMode
 {
@@ -116,7 +117,7 @@ export class GameManager
      */
     private static game_notes_can_be_triggered: GameNote[] = []
 
-    private static _note_falling_speed = 140
+    private static _note_falling_speed = 180
     /** The falling speed of a note in pixel per second (px/s). */
     public static get note_falling_speed() { return this._note_falling_speed }
     /** Set the falling speed of a note in pixel per second (px/s), should be bigger than 0. */
@@ -408,7 +409,7 @@ export class GameManager
         })
     }
 
-    private static hold_note_that_is_triggering: Set<{ key: string, note: GameNote }> = new Set()
+    private static note_that_is_triggering: Set<{ key: string, note: GameNote }> = new Set()
 
     /**
      * Check the key being pressed,
@@ -422,7 +423,6 @@ export class GameManager
 
         if (keyboard_layout[key] == undefined) { return }
 
-        const triggerNoteSoundAttack = () => this.triggerAttack(keyboard_layout[key] ?? "")
         if (this.piano_mode == PianoMode.in_game)
         {
             const [start, end] = pickOctaveRangedCtoB(this.pianokey_start, this.pianokey_end)
@@ -434,8 +434,10 @@ export class GameManager
                 // const b = convertKeyNameToNoteNum(keyboard_layout[key])
                 if (shift(note.midi_num) == convertKeyNameToNoteNum(keyboard_layout[key]))
                 {
-                    triggerNoteSoundAttack()
-                    if (note.fully_play_time == undefined) // tap to trigger
+                    SoundManager.startNote(note.midi_num)
+                    this.note_that_is_triggering.add({ key, note })
+
+                    if (isTapNote(note)) // tap to trigger
                     {
                         this.triggerGameNoteTap(note, current_time)
                         GraphicManager.prepareRateTextAboveKey(shiftNote(note))
@@ -443,7 +445,6 @@ export class GameManager
                     else // Hold to trigger
                     {
                         this.triggerGameNoteHoldStart(note, current_time)
-                        this.hold_note_that_is_triggering.add({ key, note })
                     }
 
                     break
@@ -452,7 +453,7 @@ export class GameManager
         }
         else if (this.piano_mode == PianoMode.simulator)
         {
-            triggerNoteSoundAttack()
+            this.triggerAttack(keyboard_layout[key] ?? "")
         }
 
         GraphicManager.preparePianoKeyboardOffscreen({
@@ -467,30 +468,42 @@ export class GameManager
         const keyboard_layout = this.getPianoKeyMapping()!
         const key = event.key
         const current_time = getTransport().seconds
+
         if (keyboard_layout[key] == undefined) { return }
 
         if (this.piano_mode == PianoMode.in_game)
         {
             const [start, end] = pickOctaveRangedCtoB(this.pianokey_start, this.pianokey_end)
             const shiftNote = (n: GameNote) => shiftNoteToRange(n, start, end)
-            for (const hold_note of this.hold_note_that_is_triggering)
+            let note_releasing: GameNote | null = null
+            for (const note of this.note_that_is_triggering)
             {
-                if (key == hold_note.key)
+                if (key == note.key)
                 {
-                    const { note } = hold_note
-                    this.hold_note_that_is_triggering.delete(hold_note)
-                    this.triggerGameNoteHoldFinish(note, current_time)
-                    GraphicManager.prepareRateTextAboveKey(shiftNote(note))
+                    note_releasing = note.note
+                    this.note_that_is_triggering.delete(note)
+                    if (isHoldNote(note.note))
+                    {
+                        this.triggerGameNoteHoldFinish(note.note, current_time)
+                        GraphicManager.prepareRateTextAboveKey(shiftNote(note.note))
+                    }
+
                     break
                 }
             }
+            // `null` means the player miss pressed a key.
+            if (note_releasing != null) { SoundManager.releaseNote(note_releasing.midi_num) }
+        }
+        else if (this.piano_mode == PianoMode.simulator)
+        {
+            this.triggerRelease(keyboard_layout[key] ?? "", should_release_all)
         }
 
         GraphicManager.preparePianoKeyboardOffscreen({
             mode: "keyrelease", key_num: midi_note_to_name.indexOf(keyboard_layout[key] as PossibleNoteName)
         })
         GraphicManager.drawKeyboardOnly()
-        return this.triggerRelease(keyboard_layout[key] ?? "", should_release_all)
+        return this
     }
 
     /** For a normal piano to get key being pressed. */
@@ -582,7 +595,7 @@ export class GameManager
         // Not missed
         const time_diff = press_starts_at - time_in_seconds
         const [miss_limit, late_limit] = [GameManager.note_miss_time_limit, GameManager.note_late_time_limit]
-        let diff_percent = 0
+        let diff_percent = -1
         // If it is a tap-to-trigger note.
         if (note.fully_play_time == undefined)
         {
@@ -607,7 +620,7 @@ export class GameManager
         else if (diff_percent > 0.6) { return NoteRating.bad }
         else if (diff_percent > 0.4) { return NoteRating.good }
         else if (diff_percent > 0.05) { return NoteRating.great }
-        else if (diff_percent > 0) { return NoteRating.perfect }
+        else if (diff_percent >= 0) { return NoteRating.perfect }
         else { throw RangeError(`Bad \`diff_percent\` calculated: ${diff_percent}.`) }
     }
 
