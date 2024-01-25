@@ -108,6 +108,8 @@ export class GameManager
     public static get game_status() { return this._game_status }
     private static set game_status(value) { this._game_status = value }
 
+    private static game_time_calibrate: number | null = null
+
     private static game_notes: GameNote[] | null = null
 
     /**
@@ -158,6 +160,7 @@ export class GameManager
         // console.log("GameManager init")
         this.game_status = GameStatus.not_start
         this.game_notes = null
+        this.game_time_calibrate = null
         getTransport().stop() // Set transport time to 0.
         GraphicManager.init()
         SoundManager.init()
@@ -683,15 +686,16 @@ export class GameManager
                     const song_sheet = new MusicSheet(sheet_json)
                     getTransport().bpm.value = song_sheet.bpm
                     getTransport().timeSignature = song_sheet.time_signature
-                    GameManager.game_notes = song_sheet.notes.map(
+                    this.game_time_calibrate = song_sheet.time_calibrate
+                    this.game_notes = song_sheet.notes.map(
                         note => ({
                             ...note, ...init_game_notes_value,
-                            time_in_seconds: convertToSeconds(note.time),
+                            time_in_seconds: convertToSeconds(note.time) + song_sheet.time_calibrate,
                             duration_in_seconds: convertToSeconds(note.duration),
                             fully_play_time_in_seconds: note.fully_play_time != undefined
                                 ? convertToSeconds(note.fully_play_time)
                                 : undefined
-                        })
+                        } as GameNote)
                     )
                     await SoundManager.loadBgm(data.bgm)
                     this.bgm_length = SoundManager.getBgmLength()
@@ -734,7 +738,7 @@ type GameNote_SpecialMember_WithDefault = {
  */
 type GameNote_SpecialMember_ShouldCalc = {
     /**
-     * Calculated time of note, in **seconds**.
+     * Calculated time of note with time calibrate, in **seconds**.
      */
     time_in_seconds: number
 

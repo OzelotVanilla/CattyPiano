@@ -7,6 +7,7 @@ export class MusicSheet
     public readonly bpm: number
     public readonly notes: SheetNote[]
     public readonly time_signature: [number, number]
+    public readonly time_calibrate: number
 
     constructor(sheet_data: JSONSheetData)
     {
@@ -15,6 +16,7 @@ export class MusicSheet
         this.bpm = sheet_data.bpm ?? 90
         this.notes = sheet_data.notes.map(note => SheetNote.fromSheetNote(note))
         this.time_signature = (sheet_data.time_signature ?? "4/4").split("/").map(s => parseInt(s)) as [number, number]
+        this.time_calibrate = sheet_data.time_calibrate ?? 0
     }
 }
 
@@ -31,9 +33,10 @@ export type SongJSONData = {
  * The type of a sheet file, usually `sheet.json`.
  */
 export type JSONSheetData = {
-    name: string
+    name?: string
     bpm?: number
     time_signature?: string
+    time_calibrate?: number
     notes: JSONSheetNote[]
 }
 
