@@ -1,0 +1,5 @@
+{
+    "name": "Meadow We Go",
+    "bgm": "./bgm.wav",
+    "sheet": "./sheet.jsonc"
+}
