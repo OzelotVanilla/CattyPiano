@@ -41,9 +41,10 @@ export class GraphicManager
         this.draw()
     }
 
-    /** This function is only called after the page is going to be unmounted. */
-    public static unmount()
+    /** This function is only called in `GameManager.finalise`. */
+    public static finalise()
     {
+        this.eraseDrawNotesArea()
     }
 
     /**
@@ -60,6 +61,7 @@ export class GraphicManager
         this.canvas_for_notes = new OffscreenCanvas(
             window.innerWidth, window.innerHeight * (1 - this.keyboard_config.piano_keyboard_height_ratio)
         )
+        this.preparePianoKeyboardOffscreen({ mode: "redraw" })
     }
 
     /** This will fetch and draw the image in the offscreen canvas. */

@@ -166,12 +166,13 @@ export class GameManager
         SoundManager.init()
     }
 
-    /** When the page is unmounted, this function is called to unmount. */
-    public static unmount()
+    /** When the page is unmounted, this function is called to finalise. */
+    public static finalise()
     {
         // console.log("GameManager unmount")
-        GraphicManager.unmount()
-        SoundManager.unmount()
+        this.game_status = GameStatus.finished
+        GraphicManager.finalise()
+        SoundManager.finalise()
     }
 
     /** 

@@ -8,7 +8,7 @@ import path from "path";
 
 import { SoundManager } from "@/game/manager/SoundManager";
 import { InputManager } from "@/game/manager/InputManager";
-import { GameManager, PianoMode } from "@/game/manager/GameManager";
+import { GameManager, GameStatus, PianoMode } from "@/game/manager/GameManager";
 import { GraphicManager } from "@/game/manager/GraphicManager";
 import { ReloadOutlined, SettingOutlined } from "@ant-design/icons";
 import { useI18N } from "@/i18n/i18n";
@@ -89,7 +89,7 @@ export default function PianoPage()
             window.removeEventListener("keyup", handleKeyup)
             window.removeEventListener("resize", handleResize)
             window.removeEventListener("game_end", handleGameEnd)
-            GameManager.unmount()
+            GameManager.finalise()
         }
     }, [])
 
@@ -136,11 +136,13 @@ function SelectSimOrGameMode({
 
     function onChangeToSimulator()
     {
+        if (GameManager.game_status == GameStatus.running) { GameManager.finalise() }
         setPianoMode(GameManager.piano_mode = PianoMode.simulator)
     }
 
     function onChangeToGame()
     {
+        GameManager.init()
         setPianoMode(GameManager.piano_mode = PianoMode.in_game)
         if (song_playing ?? true)
         {

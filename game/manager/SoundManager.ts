@@ -45,10 +45,11 @@ export class SoundManager
         this.bgm_player = new Player().sync().toDestination()
     }
 
-    /** This function is only called after the page is going to be unmounted. */
-    public static unmount()
+    /** This function is only called in `GameManager.finalise`. */
+    public static finalise()
     {
-        SoundManager.releaseAllNote()
+        this.releaseAllNote()
+        this.bgm_player.stop()
     }
 
     public static playNote(midi_note_number: number, param?: Param_playNote): void;
