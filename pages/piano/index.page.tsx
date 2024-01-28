@@ -1,9 +1,9 @@
 "use client"
 
 import "./piano.scss";
-import { Button, FloatButton, List, Modal, Space, Typography, notification } from "antd";
+import { Button, ConfigProvider, Empty, FloatButton, List, Modal, Space, Spin, Typography, notification } from "antd";
 const { Text, Title } = Typography
-import { Dispatch, SetStateAction, useCallback, useEffect, useRef, useState } from "react";
+import { Dispatch, SetStateAction, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import path from "path";
 
 import { SoundManager } from "@/game/manager/SoundManager";
@@ -47,6 +47,8 @@ export default function PianoPage()
     let [is_song_select_open, setSongSelectOpen] = useState(false)
     let [piano_setting, setPianoSetting] = useState(default_piano_setting)
     let [song_playing, setSongPlaying] = useState<SongData | null>(null)
+
+    const { text } = useI18N()
 
     const router = useRouter()
     const handleGameEnd = useCallback(
@@ -192,7 +194,7 @@ function SongSelectModal({
     is_song_select_open, setSongSelectOpen, song_playing, setSongPlaying
 }: SongSelectModal_Prop)
 {
-    let [song_list, setSongList] = useState<SongData[]>([])
+    let [song_list, setSongList] = useState<SongData[] | null>(null)
     let [song_selected_in_list, setSongSelectedInList] = useState<SongData | null>()
 
     const { text } = useI18N()
@@ -227,6 +229,7 @@ function SongSelectModal({
     async function updateSongList()
     {
         const available_songs_folder_name = game_sheet_info.songs
+        setSongList(null)
         if (isClientEnvironment())
         {
             const available_songs = await Promise.all(available_songs_folder_name.map(
@@ -243,7 +246,7 @@ function SongSelectModal({
 
     function SongList()
     {
-        function SongListItem(song_data: SongData)
+        function renderSongListItem(song_data: SongData)
         {
             const is_selected = song_data.name == song_selected_in_list?.name
 
@@ -254,13 +257,16 @@ function SongSelectModal({
             </List.Item>)
         }
 
-        return (<List size="small" id="song_select_list"
-            pagination={{ position: "bottom", align: "start" }}
-            dataSource={song_list} renderItem={SongListItem}
-            header={<Space style={{ width: "100%", justifyContent: "flex-end" }}>
-                <Button onClick={updateSongList}><ReloadOutlined /></Button>
-            </Space>}
-        />)
+        return (<ConfigProvider renderEmpty={() => (song_list == null ? <></> : <Empty description={text.piano.no_song_text} />)}>
+            <List id="song_select_list" size="small"
+                pagination={song_list != null ? { position: "bottom", align: "start" } : undefined}
+                dataSource={song_list ?? []} renderItem={renderSongListItem}
+                header={<Space style={{ width: "100%", justifyContent: "flex-end" }}>
+                    <Button onClick={updateSongList} disabled={song_list == null}><ReloadOutlined /></Button>
+                </Space>}
+                loading={song_list == null ? { tip: text.piano.song_loading_text } : undefined}
+            />
+        </ConfigProvider>)
     }
 
     useEffect(() =>

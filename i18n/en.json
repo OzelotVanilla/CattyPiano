@@ -14,7 +14,10 @@
         "not_selected": "Not Selected Yet",
         "select_now": "Select Now",
         "song_select_title": "Select a Song to Play",
-        "warn_not_selected": "No song has been selected yet."
+        "warn_not_selected": "No song has been selected yet.",
+        "page_loading_text": "Piano is loading, please wait ...",
+        "song_loading_text": "Loading Song Lists ...",
+        "no_song_text": "No Available Song Yet\n(Try refreshing the list ?)"
     },
     "result": {
         "title_text": "Game Result",

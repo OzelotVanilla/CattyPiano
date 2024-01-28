@@ -46,10 +46,25 @@
     .SongListItem
     {
         cursor: pointer;
+        border-top: 1px solid #f3f3f3;
+        border-bottom: 1px solid #f3f3f3;
     }
 
     .SelectedSong
     {
         background-color: #eaedf7;
+    }
+
+    // Disable the border of header
+    .ant-list-header
+    {
+        border: none;
+    }
+
+    // Give spinning enough space
+    .ant-spin-nested-loading
+    {
+        margin-top: max(1dvh, 20px);
+        margin-bottom: max(2dvh, 40px);
     }
 }

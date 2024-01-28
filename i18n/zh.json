@@ -14,7 +14,10 @@
         "not_selected": "尚未选择曲目",
         "select_now": "现在选择",
         "song_select_title": "选择要游玩的曲目",
-        "warn_not_selected": "您还没有选择任何歌曲!"
+        "warn_not_selected": "您还没有选择任何歌曲!",
+        "page_loading_text": "正在加载钢琴，请耐心等待 ...",
+        "song_loading_text": "加载歌曲列表中 ...",
+        "no_song_text": "还没有可以玩的歌曲\n(刷新下列表试试看?)"
     },
     "result": {
         "title_text": "结果发表",
