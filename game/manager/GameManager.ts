@@ -170,7 +170,7 @@ export class GameManager
     public static finalise()
     {
         // console.log("GameManager unmount")
-        this.game_status = GameStatus.finished
+        this.stopPianoGame()
         GraphicManager.finalise()
         SoundManager.finalise()
     }
@@ -265,6 +265,13 @@ export class GameManager
         tonejs_transport.seconds = this.paused_at // Must set `seconds` here to prevent freezing the transport.
         SoundManager.resumeBgm()
         this.doGameLoop()
+    }
+
+    public static stopPianoGame()
+    {
+        this.game_status = GameStatus.finished
+        SoundManager.stopBgm()
+        GraphicManager.eraseDrawNotesArea()
     }
 
     private static readonly doGameLoop = this.loopPianoGame.bind(GameManager)

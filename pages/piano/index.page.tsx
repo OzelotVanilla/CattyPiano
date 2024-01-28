@@ -163,7 +163,10 @@ function SelectSimOrGameMode({
 
     function onChangeToSimulator()
     {
-        if (GameManager.game_status == GameStatus.running) { GameManager.finalise() }
+        if (GameManager.game_status == GameStatus.running)
+        {
+            GameManager.stopPianoGame()
+        }
         setPianoMode(GameManager.piano_mode = PianoMode.simulator)
     }
 

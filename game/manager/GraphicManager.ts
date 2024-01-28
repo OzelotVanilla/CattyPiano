@@ -44,7 +44,6 @@ export class GraphicManager
     /** This function is only called in `GameManager.finalise`. */
     public static finalise()
     {
-        this.eraseDrawNotesArea()
     }
 
     /**

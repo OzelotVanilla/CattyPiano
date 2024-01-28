@@ -49,7 +49,7 @@ export class SoundManager
     public static finalise()
     {
         this.releaseAllNote()
-        this.bgm_player.stop()
+        this.bgm_player.dispose()
     }
 
     public static playNote(midi_note_number: number, param?: Param_playNote): void;
@@ -144,6 +144,11 @@ export class SoundManager
     public static resumeBgm()
     {
         return this.bgm_player.start(undefined, getToneTransport().seconds)
+    }
+
+    public static stopBgm()
+    {
+        return this.bgm_player.stop()
     }
 
     public static convertInputNotesToKeyNames(value: string | number | string[] | number[]): string[]
