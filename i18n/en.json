@@ -16,7 +16,8 @@
         "song_select_title": "Select a Song to Play",
         "warn_not_selected": "No song has been selected yet.",
         "page_loading_text": "Piano is loading, please wait ...",
-        "song_loading_text": "Loading Song Lists ...",
+        "song_list_loading_text": "Loading Song Lists ...",
+        "game_loading_text": "Loading Game ...",
         "no_song_text": "No Available Song Yet\n(Try refreshing the list ?)"
     },
     "result": {

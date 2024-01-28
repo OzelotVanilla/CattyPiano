@@ -10,12 +10,12 @@ import { SoundManager } from "@/game/manager/SoundManager";
 import { InputManager } from "@/game/manager/InputManager";
 import { GameManager, GameStatus, PianoMode } from "@/game/manager/GameManager";
 import { GraphicManager } from "@/game/manager/GraphicManager";
-import { ReloadOutlined, SettingOutlined } from "@ant-design/icons";
+import { LoadingOutlined, ReloadOutlined, SettingOutlined } from "@ant-design/icons";
 import { useI18N } from "@/i18n/i18n";
 import { jsonfyResponse } from "@/utils/common";
 import { isClientEnvironment } from "@/utils/env";
 import { SongJSONData } from "@/game/MusicSheet";
-import { GameEndEvent } from "@/utils/event";
+import { GameStatusUpdateEvent } from "@/utils/event";
 import game_sheet_info from "@/public/game_sheet/info.json"
 import { useRouter } from "next/router";
 
@@ -47,21 +47,39 @@ export default function PianoPage()
     let [is_song_select_open, setSongSelectOpen] = useState(false)
     let [piano_setting, setPianoSetting] = useState(default_piano_setting)
     let [song_playing, setSongPlaying] = useState<SongData | null>(null)
+    let [is_game_loading, setIfGameLoading] = useState(false)
 
     const { text } = useI18N()
 
     const router = useRouter()
-    const handleGameEnd = useCallback(
-        (event: GameEndEvent) =>
+    const handleGameStatusUpdate = useCallback(
+        (event: GameStatusUpdateEvent) =>
         {
-            const { rating_count, sum_score } = event.detail
-            const total_note_num = [...rating_count.values()].reduce((a, b) => a + b)
-            const rating_count_in_str = `{${[...rating_count.entries()].map(([rating, count]) => `${rating}:${count}`).join(",")}}`
+            switch (event.detail.type)
+            {
+                case "load_start":
+                    setIfGameLoading(true)
+                    break
 
-            router.push({
-                pathname: "/result",
-                query: { rating_count_in_str, sum_score, total_note_num } as GameEndResultQuery
-            }, "/result")
+                case "load_end":
+                    setIfGameLoading(false)
+                    break
+
+                case "game_end":
+                    const { rating_count, sum_score } = event.detail.result
+                    const total_note_num = [...rating_count.values()].reduce((a, b) => a + b)
+                    const rating_count_in_str = `{${[...rating_count.entries()].map(([rating, count]) => `${rating}:${count}`).join(",")}}`
+
+                    router.push({
+                        pathname: "/result",
+                        query: { rating_count_in_str, sum_score, total_note_num } as GameEndResultQuery
+                    }, "/result")
+
+                    break
+
+                default:
+                    TypeError(`Unknown game status update event type "${(event as GameStatusUpdateEvent).detail.type}".`)
+            }
         }, []
     )
 
@@ -77,7 +95,7 @@ export default function PianoPage()
         window.addEventListener("keydown", handleKeydown)
         window.addEventListener("keyup", handleKeyup)
         window.addEventListener("resize", handleResize)
-        window.addEventListener("game_end", handleGameEnd)
+        window.addEventListener("game_status_update", handleGameStatusUpdate)
         GameManager.init()
 
         // Set the page state to default.
@@ -90,7 +108,7 @@ export default function PianoPage()
             window.removeEventListener("keydown", handleKeydown)
             window.removeEventListener("keyup", handleKeyup)
             window.removeEventListener("resize", handleResize)
-            window.removeEventListener("game_end", handleGameEnd)
+            window.removeEventListener("game_status_update", handleGameStatusUpdate)
             GameManager.finalise()
         }
     }, [])
@@ -109,6 +127,13 @@ export default function PianoPage()
     return (<div id="game_panel">
         <div id="screen_left_part" style={{ width: `${screen_left_part_width_ratio}%` }}></div>
         <div id="screen_right_part" style={{ width: `${screen_right_part_width_ratio}%` }}>
+            {is_game_loading
+                ? (<div className="GameLoadingHintArea">
+                    <Spin className="GameLoadingSpin"
+                        indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
+                    <Text>{text.piano.game_loading_text}</Text>
+                </div>)
+                : (<></>)}
             <canvas id="piano_game"></canvas>
         </div>
         <SelectSimOrGameMode
@@ -264,7 +289,7 @@ function SongSelectModal({
                 header={<Space style={{ width: "100%", justifyContent: "flex-end" }}>
                     <Button onClick={updateSongList} disabled={song_list == null}><ReloadOutlined /></Button>
                 </Space>}
-                loading={song_list == null ? { tip: text.piano.song_loading_text } : undefined}
+                loading={song_list == null ? { tip: text.piano.song_list_loading_text } : undefined}
             />
         </ConfigProvider>)
     }

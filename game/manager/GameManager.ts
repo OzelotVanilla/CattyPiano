@@ -322,9 +322,10 @@ export class GameManager
                 {
                     this.game_status = GameStatus.finished
                     window.dispatchEvent(
-                        new CustomEvent("game_end", {
+                        new CustomEvent("game_status_update", {
                             detail: {
-                                ...this.calculateGameResult()
+                                type: "game_end",
+                                result: this.calculateGameResult()
                             }
                         })
                     )
@@ -670,6 +671,7 @@ export class GameManager
             is_triggered: false, rating: NoteRating.not_rated_yet,
             press_starts_at: 0, press_ends_at: 0
         }
+        window.dispatchEvent(new CustomEvent("game_status_update", { detail: { type: "load_start" } }))
         return await fetch(song_json_url)
             .then(jsonfyResponse)
             .catch(reason => onFail({ reason, song_json_url }))
@@ -700,6 +702,7 @@ export class GameManager
                     )
                     await SoundManager.loadBgm(data.bgm)
                     this.bgm_length = SoundManager.getBgmLength()
+                    window.dispatchEvent(new CustomEvent("game_status_update", { detail: { type: "load_end" } }))
                 }
             )
     }

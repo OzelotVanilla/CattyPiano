@@ -1,8 +1,8 @@
-import { GameEndEvent } from "../event"
+import { GameStatusUpdateEvent } from "../event"
 
 interface CustomEventRecord
 {
-    "game_end": GameEndEvent
+    "game_status_update": GameStatusUpdateEvent
 }
 
 declare global
