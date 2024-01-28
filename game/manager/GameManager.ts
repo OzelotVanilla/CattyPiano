@@ -154,6 +154,10 @@ export class GameManager
 
     public static get game_time() { return SoundManager.getBgmPlayerTime() }
 
+    private static load_abort_controller: AbortController
+
+    private static load_abort_signal: AbortSignal
+
     /** When the page is at the piano page, this function is called to do the initialisation. */
     public static init()
     {
@@ -161,6 +165,8 @@ export class GameManager
         this.game_status = GameStatus.not_start
         this.game_notes = null
         this.game_time_calibrate = null
+        this.load_abort_controller = new AbortController()
+        this.load_abort_signal = this.load_abort_controller.signal
         getTransport().stop() // Set transport time to 0.
         GraphicManager.init()
         SoundManager.init()
@@ -267,6 +273,7 @@ export class GameManager
         this.doGameLoop()
     }
 
+    /** This function can be use to stop a running game, or cancel the loading of the game. */
     public static stopPianoGame()
     {
         if (this.game_status == GameStatus.running)
@@ -280,8 +287,6 @@ export class GameManager
             this.load_abort_controller.abort()
         }
         this.game_status = GameStatus.finished
-        SoundManager.stopBgm()
-        GraphicManager.eraseDrawNotesArea()
     }
 
     private static readonly doGameLoop = this.loopPianoGame.bind(GameManager)
@@ -666,6 +671,8 @@ export class GameManager
 
     }
 
+    private static game_abort_tag = "Game load aborted"
+
     /**
      * Load the song with given URL, and start the game after it is loaded.
      * 
@@ -676,52 +683,79 @@ export class GameManager
         if (!isClientEnvironment()) { return }
 
         this.loadSong(song_url)
-            .then(this.startPianoGame.bind(GameManager))
+            .then(
+                () => // If the game successfully load
+                {
+                    // Make sure user does not change rapidly between `in_game` and `simulator` mode.
+                    if (
+                        this.piano_mode == PianoMode.in_game
+                        && this.game_status == GameStatus.not_start
+                        && this.game_notes != null
+                    )
+                    {
+                        this.startPianoGame()
+                    }
+                },
+                (reason) => // If the game loading was aborted, or something else happened.
+                {
+                    // If the game loading is aborted then nothing should happened.
+                    if (reason != this.game_abort_tag) { throw reason }
+                }
+            )
     }
 
-    private static async loadSong(
+    private static loadSong(
         song_folder_url: string, onFail: (param: { reason: any, song_json_url: string }) => any = console.error
     )
     {
-        const song_json_url = path.join(song_folder_url, "song.json")
-        const init_game_notes_value: GameNote_SpecialMember_WithDefault = {
-            is_triggered: false, rating: NoteRating.not_rated_yet,
-            press_starts_at: 0, press_ends_at: 0
-        }
-        window.dispatchEvent(new CustomEvent("game_status_update", { detail: { type: "load_start" } }))
-        return await fetch(song_json_url)
-            .then(jsonfyResponse)
-            .catch(reason => onFail({ reason, song_json_url }))
-            .then(
-                async (data: SongJSONData) =>
-                {
-                    data.sheet = data.sheet != undefined
-                        ? path.resolve(song_folder_url, data.sheet)
-                        : path.join(song_folder_url, "sheet.json")
-                    data.bgm = data.bgm != undefined
-                        ? path.resolve(song_folder_url, data.bgm)
-                        : path.join(song_folder_url, "bgm.mp3")
-
-                    const sheet_json: JSONSheetData = await (fetch(data.sheet).then(jsonfyResponse))
-                    const song_sheet = new MusicSheet(sheet_json)
-                    getTransport().bpm.value = song_sheet.bpm
-                    getTransport().timeSignature = song_sheet.time_signature
-                    this.game_time_calibrate = song_sheet.time_calibrate
-                    this.game_notes = song_sheet.notes.map(
-                        note => ({
-                            ...note, ...init_game_notes_value,
-                            time_in_seconds: convertToSeconds(note.time) + song_sheet.time_calibrate,
-                            duration_in_seconds: convertToSeconds(note.duration),
-                            fully_play_time_in_seconds: note.fully_play_time != undefined
-                                ? convertToSeconds(note.fully_play_time)
-                                : undefined
-                        } as GameNote)
-                    )
-                    await SoundManager.loadBgm(data.bgm)
-                    this.bgm_length = SoundManager.getBgmLength()
-                    window.dispatchEvent(new CustomEvent("game_status_update", { detail: { type: "load_end" } }))
+        return new Promise<void>(
+            (resolve, reject) =>
+            {
+                const song_json_url = path.join(song_folder_url, "song.json")
+                const init_game_notes_value: GameNote_SpecialMember_WithDefault = {
+                    is_triggered: false, rating: NoteRating.not_rated_yet,
+                    press_starts_at: 0, press_ends_at: 0
                 }
-            )
+                window.dispatchEvent(new CustomEvent("game_status_update", { detail: { type: "load_start" } }))
+                this.load_abort_signal.addEventListener("abort", () => { reject(this.game_abort_tag) })
+                fetch(song_json_url)
+                    .then(jsonfyResponse)
+                    .catch(reason => onFail({ reason, song_json_url }))
+                    .then(
+                        async (data: SongJSONData) =>
+                        {
+                            data.sheet = data.sheet != undefined
+                                ? path.resolve(song_folder_url, data.sheet)
+                                : path.join(song_folder_url, "sheet.json")
+                            data.bgm = data.bgm != undefined
+                                ? path.resolve(song_folder_url, data.bgm)
+                                : path.join(song_folder_url, "bgm.mp3")
+
+                            const sheet_json: JSONSheetData = await (fetch(data.sheet).then(jsonfyResponse))
+                            const song_sheet = new MusicSheet(sheet_json)
+                            getTransport().bpm.value = song_sheet.bpm
+                            getTransport().timeSignature = song_sheet.time_signature
+                            this.game_time_calibrate = song_sheet.time_calibrate
+                            this.game_notes = song_sheet.notes.map(
+                                note => ({
+                                    ...note, ...init_game_notes_value,
+                                    time_in_seconds: convertToSeconds(note.time) + song_sheet.time_calibrate,
+                                    duration_in_seconds: convertToSeconds(note.duration),
+                                    fully_play_time_in_seconds: note.fully_play_time != undefined
+                                        ? convertToSeconds(note.fully_play_time)
+                                        : undefined
+                                } as GameNote)
+                            )
+                            await SoundManager.loadBgm(data.bgm)
+                            this.bgm_length = SoundManager.getBgmLength()
+                            // Debug purpose
+                            // await new Promise((resolve) => { setTimeout(() => { resolve(1) }, 3000) })
+                            window.dispatchEvent(new CustomEvent("game_status_update", { detail: { type: "load_end" } }))
+                            resolve()
+                        }
+                    )
+            }
+        )
     }
 }
 

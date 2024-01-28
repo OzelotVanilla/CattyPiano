@@ -137,7 +137,7 @@ export default function PianoPage()
             <canvas id="piano_game"></canvas>
         </div>
         <SelectSimOrGameMode
-            piano_mode={piano_mode} setPianoMode={setPianoMode}
+            piano_mode={piano_mode} setPianoMode={setPianoMode} setIfGameLoading={setIfGameLoading}
             song_playing={song_playing} setSongSelectOpen={setSongSelectOpen} />
         <SongSelectModal
             is_song_select_open={is_song_select_open} setSongSelectOpen={setSongSelectOpen}
@@ -156,17 +156,15 @@ export type GameEndResultQuery = {
 }
 
 function SelectSimOrGameMode({
-    piano_mode, setPianoMode, song_playing, setSongSelectOpen
+    piano_mode, setPianoMode, setIfGameLoading, song_playing, setSongSelectOpen
 }: SelectSimOrGameMode_Prop)
 {
     const { text } = useI18N()
 
     function onChangeToSimulator()
     {
-        if (GameManager.game_status == GameStatus.running)
-        {
-            GameManager.stopPianoGame()
-        }
+        GameManager.stopPianoGame()
+        setIfGameLoading(false)
         setPianoMode(GameManager.piano_mode = PianoMode.simulator)
     }
 
@@ -216,6 +214,7 @@ type SelectSimOrGameMode_Prop = {
     setPianoMode: Dispatch<SetStateAction<PianoMode>>
     song_playing: SongData | null
     setSongSelectOpen: Dispatch<SetStateAction<boolean>>
+    setIfGameLoading: Dispatch<SetStateAction<boolean>>
 }
 
 function SongSelectModal({
