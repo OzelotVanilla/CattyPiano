@@ -1,4 +1,5 @@
 {
+    "name": "catty_piano",
     "scripts": {
         "dev": "next dev",
         "build": "next build",

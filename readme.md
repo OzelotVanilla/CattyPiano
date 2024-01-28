@@ -1,4 +1,4 @@
-\[Project Name\], a music game on curve screen
+Catty Piano, a music game on curve screen
 ====
 
 This is a course project of Human Computer Interaction.
