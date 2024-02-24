@@ -269,6 +269,16 @@ export class GameManager
 
     public static stopPianoGame()
     {
+        if (this.game_status == GameStatus.running)
+        {
+            SoundManager.stopBgm()
+            // If game finishes, the page will not contain game canvas.
+            if (GraphicManager.game_canvas != null) { GraphicManager.eraseDrawNotesArea() }
+        }
+        else if (this.game_status == GameStatus.not_start) // Aborting game load
+        {
+            this.load_abort_controller.abort()
+        }
         this.game_status = GameStatus.finished
         SoundManager.stopBgm()
         GraphicManager.eraseDrawNotesArea()
