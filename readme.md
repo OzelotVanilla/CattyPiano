@@ -4,6 +4,8 @@ Catty Piano, a music game on curve screen
 This is a course project of Human Computer Interaction.
 The aim is to design an app for the curve screen in the school.
 
+![Project Preview](https://github.com/OzelotVanilla/CattyPiano/assets/97742527/ecceed4c-13bd-451a-b2c4-1f9ff7744910)
+
 How to start developing
 ----
 
