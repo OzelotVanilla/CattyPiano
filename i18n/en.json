@@ -18,7 +18,8 @@
         "page_loading_text": "Piano is loading, please wait ...",
         "song_list_loading_text": "Loading Song Lists ...",
         "game_loading_text": "Loading Game ...",
-        "no_song_text": "No Available Song Yet\n(Try refreshing the list ?)"
+        "no_song_text": "No Available Song Yet\n(Try refreshing the list ?)",
+        "key_adjust_impossible": "Cannot adjust key range further, because already at the edge of range."
     },
     "result": {
         "title_text": "Game Result",

@@ -1,14 +1,14 @@
 import { getTransport } from "tone";
 import { GraphicManager, prepareNotesOffscreen_Param } from "./GraphicManager";
 import { SoundManager } from "./SoundManager";
-import { PossibleNoteName, default_piano_keyboard_layout, midi_note_to_name } from "@/utils/constant_store";
+import { PossibleFunction, PossibleKeyInput, PossibleNoteName, ValidInputResult, default_function_key_layout, default_piano_keyboard_layout, midi_note_to_name } from "@/utils/constant_store";
 import { MusicSheet, JSONSheetData, SongJSONData } from "../MusicSheet";
 import { isClientEnvironment } from "@/utils/env";
 import path from "path";
 import { convertToSeconds, jsonfyResponse } from "@/utils/common";
 import { SheetNote_Constructor } from "../SheetNote";
 import { Time } from "tone/build/esm/core/type/Units";
-import { convertKeyNameToNoteNum, isSharpKey, pickOctaveRangedCtoB, shiftMIDINumToRange, shiftNoteToRange } from "@/utils/music";
+import { checkIfValidKeyRange, convertKeyNameToNoteNum, isSharpKey, pickOctaveRangedCtoB, shiftMIDINumToRange, shiftNoteToRange } from "@/utils/music";
 import { isHoldNote, isTapNote } from "@/utils/game";
 
 export enum PianoMode
@@ -58,9 +58,9 @@ export class GameManager
 {
     public static piano_mode: PianoMode = PianoMode.simulator
 
-    private static pianokey_mapping_setting: Map<PianoMode, Record<string, string>> = new Map([
-        [PianoMode.simulator, default_piano_keyboard_layout],
-        [PianoMode.in_game, default_piano_keyboard_layout]
+    private static pianokey_mapping_setting: Map<PianoMode, Record<PossibleKeyInput, ValidInputResult>> = new Map([
+        [PianoMode.simulator, { ...default_piano_keyboard_layout, ...default_function_key_layout }],
+        [PianoMode.in_game, { ...default_piano_keyboard_layout, ...default_function_key_layout }]
     ])
 
     // private static funckey_mapping_setting:Map<PianoMode,Record<string,string>>=new Map([
@@ -80,28 +80,39 @@ export class GameManager
     {
         if (start < 21 || end > 108 || start >= end)
         {
-            throw RangeError(`Error start or end`)
+            throw RangeError(`Error start(${start}) or end(${end}).`)
         }
         if (isSharpKey(start) || isSharpKey(end))
         {
             throw RangeError(`Cannot start or end on a black key.`)
         }
 
-        let white_key = ["a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'"]
-        let black_key = ["", "w", "e", "r", "t", "y", "u", "i", "o", "p", "["]
+        const white_key = ["a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'"]
+        const black_key = ["", "w", "e", "r", "t", "y", "u", "i", "o", "p", "["]
         let key_count = 0
 
-        let layout: Record<string, string> = {}
+        let layout: Record<PossibleKeyInput, ValidInputResult> = {}
         for (let i = start; i <= end; i++)
         {
-            if (key_count > white_key.length) { throw RangeError(`Too many Keys`) }
+            if (key_count > white_key.length) { throw RangeError(`Too many keys.`) }
 
             if (isSharpKey(i)) { layout[black_key[key_count]] = midi_note_to_name[i]! }
             else { layout[white_key[key_count++]] = midi_note_to_name[i]! }
         }
 
-        this.pianokey_mapping_setting.set(PianoMode.simulator, layout)
-        this.pianokey_mapping_setting.set(PianoMode.in_game, layout)
+        this.pianokey_mapping_setting.set(
+            PianoMode.simulator,
+            { ...this.pianokey_mapping_setting.get(PianoMode.simulator), ...layout }
+        )
+        this.pianokey_mapping_setting.set(
+            PianoMode.in_game,
+            { ...this.pianokey_mapping_setting.get(PianoMode.in_game), ...layout }
+        )
+        this._pianokey_start = start
+        this._pianokey_end = end
+
+        GraphicManager.preparePianoKeyboardOffscreen({ mode: "layout", start_num: start, end_num: end })
+        GraphicManager.drawKeyboardOnly()
     }
 
     private static _game_status: GameStatus = GameStatus.not_start
@@ -444,11 +455,14 @@ export class GameManager
      */
     public static getKeyDown(event: KeyboardEvent)
     {
-        const keyboard_layout = this.getPianoKeyMapping()!
+        const keyboard_layout = this.getPianoKeyMapping() as Record<PossibleKeyInput, ValidInputResult>
         const key = event.key
-        const current_time = getTransport().seconds
+        const response: ValidInputResult | undefined = keyboard_layout[key]
 
-        if (keyboard_layout[key] == undefined) { return }
+        if (response == undefined) { return }
+        if (response.startsWith("func:")) { this.handleFunctional(response as PossibleFunction); return }
+
+        const current_time = getTransport().seconds
 
         if (this.piano_mode == PianoMode.in_game)
         {
@@ -492,11 +506,13 @@ export class GameManager
 
     public static getKeyUp(event: KeyboardEvent, should_release_all: boolean = false)
     {
-        const keyboard_layout = this.getPianoKeyMapping()!
+        const keyboard_layout = this.getPianoKeyMapping() as Record<PossibleKeyInput, ValidInputResult>
         const key = event.key
-        const current_time = getTransport().seconds
+        const response: ValidInputResult | undefined = keyboard_layout[key]
 
-        if (keyboard_layout[key] == undefined) { return }
+        if (response == undefined || response.startsWith("func:")) { return }
+
+        const current_time = getTransport().seconds
 
         if (this.piano_mode == PianoMode.in_game)
         {
@@ -531,6 +547,66 @@ export class GameManager
         })
         GraphicManager.drawKeyboardOnly()
         return this
+    }
+
+    /**
+     * Handle the functional adjust to this game, such as change the range of the keyboard.
+     * 
+     * @param fn The name of the function to be handled. Starts with "func:".
+     */
+    public static handleFunctional(fn: PossibleFunction)
+    {
+        const [key_range_start, key_range_end] = [this.pianokey_start, this.pianokey_end]
+        function warnOutOfRange()
+        {
+            window.dispatchEvent(
+                new CustomEvent("game_status_update", {
+                    detail: {
+                        type: "request_pop_up", kind: "warning",
+                        message: "piano.key_adjust_impossible", placement: "top"
+                    }
+                })
+            )
+        }
+
+        switch (fn)
+        {
+            case "func:range_left_full_note": {
+                let [start, end] = [key_range_start - 1, key_range_end - 1]
+                while (isSharpKey(start)) { start-- }
+                while (isSharpKey(end)) { end-- }
+                if (!checkIfValidKeyRange(start, end)) { warnOutOfRange() }
+                this.setNewPianoKeyRange(start, end)
+            }
+                break
+
+            case "func:range_right_full_note": {
+                let [start, end] = [key_range_start + 1, key_range_end + 1]
+                while (isSharpKey(start)) { start++ }
+                while (isSharpKey(end)) { end++ }
+                if (!checkIfValidKeyRange(start, end)) { warnOutOfRange() }
+                this.setNewPianoKeyRange(start, end)
+            }
+                break
+
+            case "func:range_left_octave": {
+                let [start, end] = [key_range_start - 12, key_range_end - 12]
+                if (!checkIfValidKeyRange(start, end)) { warnOutOfRange() }
+                this.setNewPianoKeyRange(start, end)
+            }
+                break
+
+            case "func:range_right_octave": {
+                let [start, end] = [key_range_start + 12, key_range_end + 12]
+                if (!checkIfValidKeyRange(start, end)) { warnOutOfRange() }
+                this.setNewPianoKeyRange(start, end)
+            }
+                break
+
+            default: {
+                throw TypeError(`${fn} is not a valid functional adjust to this game.`)
+            }
+        }
     }
 
     /** For a normal piano to get key being pressed. */
@@ -651,11 +727,14 @@ export class GameManager
         else { throw RangeError(`Bad \`diff_percent\` calculated: ${diff_percent}.`) }
     }
 
-    /** Get the mapping of key */
+    /** Get the mapping of key according to current piano mode. */
     public static getPianoKeyMapping(order: "key_to_note" | "note_to_key" = "key_to_note")
     {
         const mapping = this.pianokey_mapping_setting.get(this.piano_mode)!
-        if (mapping == undefined) { return {} }
+        if (mapping == undefined)
+        {
+            throw TypeError(`"GameManager.pianokey_mapping_setting" does not have layout for ${this.piano_mode}.`)
+        }
 
         if (order == "key_to_note") { return mapping }
         else if (order == "note_to_key")

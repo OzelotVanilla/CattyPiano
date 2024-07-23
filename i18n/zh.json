@@ -18,7 +18,8 @@
         "page_loading_text": "正在加载钢琴，请耐心等待 ...",
         "song_list_loading_text": "加载歌曲列表中 ...",
         "game_loading_text": "加载游戏中 ...",
-        "no_song_text": "还没有可以玩的歌曲\n(刷新下列表试试看?)"
+        "no_song_text": "还没有可以玩的歌曲\n(刷新下列表试试看?)",
+        "key_adjust_impossible": "键盘调整已经到底啦，不能继续再调整了。"
     },
     "result": {
         "title_text": "结果发表",

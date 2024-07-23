@@ -52,6 +52,7 @@ export default function PianoPage()
     const { text } = useI18N()
 
     const router = useRouter()
+    const [notif_api, notif_ctx] = notification.useNotification()
     const handleGameStatusUpdate = useCallback(
         (event: GameStatusUpdateEvent) =>
         {
@@ -75,6 +76,14 @@ export default function PianoPage()
                         query: { rating_count_in_str, sum_score, total_note_num } as GameEndResultQuery
                     }, "/result")
 
+                    break
+
+                case "request_pop_up": {
+                    const { kind, message, placement } = event.detail
+                    let message_text: Record<string, any> | string = text
+                    for (const key of message.split(".")) { message_text = (message_text as Record<string, any>)[key] }
+                    notif_api[kind]({ message: message_text as string, placement })
+                }
                     break
 
                 default:
@@ -125,6 +134,7 @@ export default function PianoPage()
     const screen_right_part_width_ratio = 100 - screen_left_part_width_ratio
 
     return (<div id="game_panel">
+        {notif_ctx}
         <div id="screen_left_part" style={{ width: `${screen_left_part_width_ratio}%` }}></div>
         <div id="screen_right_part" style={{ width: `${screen_right_part_width_ratio}%` }}>
             {is_game_loading

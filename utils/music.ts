@@ -47,6 +47,8 @@ export function isSharpKey(midi_note_num: number)
     return midi_note_to_name[midi_note_num]?.includes("#") ?? false
 }
 
+export function isNotSharpKey(midi_note_num: number) { return !isSharpKey(midi_note_num) }
+
 /**
  * Shift a note to fit in the range (can be reversed).
  * 
@@ -108,4 +110,9 @@ export function pickOctaveRangedCtoB(start_num: number, end_num: number): [numbe
     if (position_b > end_num) { return [-1, -1] }
     // Else guess is valid.
     else { return [position_c, position_b] }
+}
+
+export function checkIfValidKeyRange(start: number, end: number)
+{
+    return !(start < 21 || end > 108 || start >= end || isSharpKey(start) || isSharpKey(end))
 }

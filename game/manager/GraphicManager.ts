@@ -14,6 +14,7 @@ export class GraphicManager
 
     private static canvas_for_notes: OffscreenCanvas
 
+    /** Storing the data of current keyboard config. Updated by `prepare` function. */
     private static keyboard_config = {
         start_num: 57, end_num: 74,
         white_keys_position: [] as number[], black_keys_position: [] as number[],

@@ -1,6 +1,6 @@
 import { NoteRating } from "@/game/manager/GameManager";
 
-export const default_piano_keyboard_layout = {
+export const default_piano_keyboard_layout: Record<PossibleKeyInput, PossibleNoteName> = {
     "a": "A3",
     "w": "A#3",
     "s": "B3",
@@ -21,9 +21,11 @@ export const default_piano_keyboard_layout = {
     "\'": "D5"
 }
 
-export const default_function_key_layout = {
-    "ArrowLeft": "",
-    "ArrowRight": "",
+export const default_function_key_layout: Record<PossibleKeyInput, PossibleFunction> = {
+    "ArrowLeft": "func:range_left_full_note",
+    "ArrowRight": "func:range_right_full_note",
+    "ArrowUp": "func:range_right_octave",
+    "ArrowDown": "func:range_left_octave"
 }
 
 export const midi_note_to_name = [
@@ -41,9 +43,16 @@ export const midi_note_to_name = [
     "C8"
 ] as const
 
+export const function_keys = [
+    "func:range_left_full_note", "func:range_right_full_note", "func:range_left_octave", "func:range_right_octave"
+] as const
+
 type GetReadonlyArrayInnerType<ReadonlyArray extends readonly any[]> = ReadonlyArray[number];
 
-export type PossibleNoteName = GetReadonlyArrayInnerType<typeof midi_note_to_name>;
+export type PossibleKeyInput = KeyboardEvent["key"]
+export type PossibleNoteName = Exclude<GetReadonlyArrayInnerType<typeof midi_note_to_name>, undefined>
+export type PossibleFunction = GetReadonlyArrayInnerType<typeof function_keys>
+export type ValidInputResult = PossibleNoteName | PossibleFunction
 
 export type CanvasFillColour = CanvasFillStrokeStyles["fillStyle"]
 export type CanvasTextFont = CanvasTextDrawingStyles["font"]
